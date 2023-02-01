@@ -204,7 +204,7 @@ impl VertexData {
             max + 1
         };
         self.m_Streams = Vec::with_capacity(stream_count as usize);
-        let mut offset = 0;
+        let mut offset = std::num::Wrapping(0);
         for s in 0..stream_count {
             let mut chnMask = 0;
             let mut stride = 0;
@@ -220,14 +220,14 @@ impl VertexData {
             }
             self.m_Streams.push(StreamInfo {
                 channelMask: chnMask,
-                offset: offset,
+                offset: offset.0,
                 stride,
                 align: 0,
                 dividerOp: 0,
                 frequency: 0,
             });
             offset += self.m_VertexCount * stride;
-            offset = (offset + (16u8 - 1u8) & (!(16u8 - 1u8)));
+            offset = (offset + std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8))));
         }
         Ok(())
     }
