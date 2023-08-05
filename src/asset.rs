@@ -1,70 +1,72 @@
 use std::sync::Arc;
+use crate::common::common_string;
+use crate::error::UnityResult;
+use crate::object::ObjectInfo;
+use crate::reader::{ByteOrder, Reader};
+use crate::typetree::{TypeTree, TypeTreeNode};
 
-use super::common::common_string;
-use super::object::ObjectInfo;
-use super::type_node::{TypeTree, TypeTreeNode};
-use super::{ByteOrder, Reader, Result, AssetBundle};
 #[derive(Default)]
 pub struct SerializedFileHeader {
-    metadata_size: usize,
-    file_size: usize,
-    version: u32,
-    data_offset: usize,
-    endianess: u8,
-    reserved: [u8;3],
+    pub metadata_size: usize,
+    pub file_size: usize,
+    pub version: u32,
+    pub data_offset: usize,
+    pub endian: u8,
+    pub reserved: [u8; 3],
 }
 
 #[derive(Default, Clone)]
 pub struct SerializedType {
-    pub(super) class_id: i32,
-    pub(super) is_stripped_type: bool,
-    pub(super) script_type_index: Option<i16>,
-    pub(super) type_tree: TypeTree,
-    pub(super) script_id: [u8; 16],
-    pub(super) old_type_hash: [u8; 16],
-    pub(super) type_dependencies: Vec<i32>,
-    pub(super) klass_name: String,
-    pub(super) name_space: String,
-    pub(super) asm_name: String,
+    pub class_id: i32,
+    pub is_stripped_type: bool,
+    pub script_type_index: Option<i16>,
+    pub type_tree: TypeTree,
+    pub script_id: [u8; 16],
+    pub old_type_hash: [u8; 16],
+    pub type_dependencies: Vec<i32>,
+    pub klass_name: String,
+    pub name_space: String,
+    pub asm_name: String,
 }
 
 #[derive(Default)]
 pub struct LocalSerializedObjectIdentifier {
-    local_serialized_file_index: i32,
-    local_identifier_in_file: i64,
+    pub local_serialized_file_index: i32,
+    pub local_identifier_in_file: i64,
 }
 
 #[derive(Default)]
 pub struct FileIdentifier {
-    guid: [u8; 16],
-    type_: i32,
-    path_name: String,
+    pub guid: [u8; 16],
+    pub type_: i32,
+    pub path_name: String,
     //file_name: String,
 }
+
 
 pub struct Asset {
     //full_name: String,
     //path: String,
     //file_name: String,
-    version: [i32; 4],
-    build_type: String,
-    header: SerializedFileHeader,
-    file_endianess: u8,
-    unity_version: String,
-    target_platform: i32,
-    enable_type_tree: bool,
-    types: Vec<SerializedType>,
-    big_id_enabled: bool,
+    pub version: [i32; 4],
+    pub build_type: String,
+    pub header: SerializedFileHeader,
+    pub file_endian: u8,
+    pub unity_version: String,
+    pub target_platform: i32,
+    pub enable_type_tree: bool,
+    pub types: Vec<SerializedType>,
+    pub big_id_enabled: bool,
     pub objects_info: Vec<ObjectInfo>,
-    script_types: Vec<LocalSerializedObjectIdentifier>,
-    externals: Vec<FileIdentifier>,
-    ref_types: Vec<SerializedType>,
-    user_information: String,
+    pub script_types: Vec<LocalSerializedObjectIdentifier>,
+    pub externals: Vec<FileIdentifier>,
+    pub ref_types: Vec<SerializedType>,
+    pub user_information: String,
 }
 
 impl Asset {
-    pub(super) fn new(data: bytes::Bytes, bundle:Arc<AssetBundle>) -> Result<Self> {
-        let mut r = Reader::new(data, ByteOrder::Big);
+    pub(crate) fn new(src: Arc<Vec<u8>>) -> UnityResult<Self> {
+        let mut r = Reader::new(src.as_slice(), ByteOrder::Big);
         let mut ret = Self {
             //full_name: String::default(),
             //path: String::default(),
@@ -72,7 +74,7 @@ impl Asset {
             version: [0; 4],
             build_type: String::default(),
             header: SerializedFileHeader::default(),
-            file_endianess: 0,
+            file_endian: 0,
             unity_version: String::default(),
             target_platform: 0,
             enable_type_tree: false,
@@ -89,12 +91,12 @@ impl Asset {
         ret.header.version = r.read_u32()?;
         ret.header.data_offset = r.read_u32()? as usize;
         if ret.header.version >= 9 {
-            ret.header.endianess = r.read_u8()?;
+            ret.header.endian = r.read_u8()?;
             ret.header.reserved = r.read_u8_array()?;
-            ret.file_endianess = ret.header.endianess;
+            ret.file_endian = ret.header.endian;
         } else {
             r.set_offset(ret.header.file_size - ret.header.metadata_size)?;
-            ret.file_endianess = r.read_u8()?;
+            ret.file_endian = r.read_u8()?;
         }
         if ret.header.version >= 22 {
             ret.header.metadata_size = r.read_u32()? as usize;
@@ -102,12 +104,11 @@ impl Asset {
             ret.header.data_offset = r.read_i64()? as usize;
             r.read_i64()?;
         }
-        if ret.file_endianess == 0 {
+        if ret.file_endian == 0 {
             r.set_little_order()
         }
-
         if ret.header.version >= 7 {
-            ret.unity_version = r.read_string_utill_null()?;
+            ret.unity_version = r.read_string_util_null()?;
             let mut s = String::new();
             for i in ret.unity_version.chars() {
                 if i.is_ascii_alphabetic() {
@@ -125,7 +126,6 @@ impl Asset {
                 ret.version[i] = j.parse().unwrap()
             }
         }
-
         if ret.header.version >= 8 {
             ret.target_platform = r.read_i32()?;
         }
@@ -145,9 +145,9 @@ impl Asset {
         let object_count = r.read_i32()?;
         for _ in 0..object_count {
             let mut object_info = ObjectInfo {
-                bundle:bundle.clone(),
-                build_type:ret.build_type.clone(),
-                reader: r.clone(),
+                build_type: ret.build_type.clone(),
+                data: src.clone(),
+                bytes_order: r.get_order(),
                 asset_version: ret.header.version,
                 bytes_start: 0,
                 bytes_size: 0,
@@ -168,11 +168,11 @@ impl Asset {
                 object_info.path_id = r.read_i64()?;
             }
             if ret.header.version >= 22 {
-                object_info.bytes_start = r.read_i64()?;
+                object_info.bytes_start = r.read_i64()? as usize;
             } else {
-                object_info.bytes_start = r.read_u32()? as i64;
+                object_info.bytes_start = r.read_u32()? as usize;
             }
-            object_info.bytes_start += ret.header.data_offset as i64;
+            object_info.bytes_start += ret.header.data_offset;
             object_info.version = ret.version;
             object_info.bytes_size = r.read_u32()? as usize;
             object_info.type_id = r.read_i32()?;
@@ -219,13 +219,13 @@ impl Asset {
         for _ in 0..externals_count {
             let mut external = FileIdentifier::default();
             if ret.header.version >= 6 {
-                r.read_string_utill_null()?;
+                r.read_string_util_null()?;
             }
             if ret.header.version >= 5 {
                 external.guid = r.read_u8_array()?;
                 external.type_ = r.read_i32()?;
             }
-            external.path_name = r.read_string_utill_null()?;
+            external.path_name = r.read_string_util_null()?;
             ret.externals.push(external)
         }
         if ret.header.version >= 20 {
@@ -236,16 +236,12 @@ impl Asset {
             }
         }
         if ret.header.version >= 5 {
-            ret.user_information = r.read_string_utill_null()?;
+            ret.user_information = r.read_string_util_null()?;
         }
         Ok(ret)
     }
 
-    pub fn read_serialized_type(
-        &mut self,
-        r: &mut Reader,
-        is_ref_type: bool,
-    ) -> Result<SerializedType> {
+    pub fn read_serialized_type(&mut self, r: &mut Reader, is_ref_type: bool) -> UnityResult<SerializedType> {
         let mut result = SerializedType::default();
         result.class_id = r.read_i32()?;
         if self.header.version >= 16 {
@@ -274,23 +270,24 @@ impl Asset {
             }
             if self.header.version >= 21 {
                 if is_ref_type {
-                    result.klass_name = r.read_string_utill_null()?;
-                    result.name_space = r.read_string_utill_null()?;
-                    result.asm_name = r.read_string_utill_null()?;
+                    result.klass_name = r.read_string_util_null()?;
+                    result.name_space = r.read_string_util_null()?;
+                    result.asm_name = r.read_string_util_null()?;
                 } else {
-                    result.type_dependencies = r.read_i32_list_without_size()?;
+                    let length = r.read_i32()? as usize;
+                    result.type_dependencies = r.read_i32_list(length)?;
                 }
             }
         }
         Ok(result)
     }
 
-    pub fn read_type_tree_blob(&mut self, r: &mut Reader, type_tree: &mut TypeTree) -> Result<()> {
-        fn read_string(r: &mut Reader, offset: usize) -> Result<String> {
+    pub fn read_type_tree_blob(&mut self, r: &mut Reader, type_tree: &mut TypeTree) -> UnityResult<()> {
+        fn read_string(r: &mut Reader, offset: usize) -> UnityResult<String> {
             let is_offset = offset & 0x80000000 == 0;
             if is_offset {
                 r.set_offset(offset)?;
-                return Ok(r.read_string_utill_null()?);
+                return Ok(r.read_string_util_null()?);
             }
             let offset = offset & 0x7FFFFFFF;
             match common_string(offset) {
@@ -317,7 +314,7 @@ impl Asset {
             type_tree.nodes.push(type_tree_node)
         }
         type_tree.string_buffer = r.read_u8_list(string_buffer_size)?;
-        let mut string_buffer_reader = Reader::new(type_tree.string_buffer.clone(), ByteOrder::Big);
+        let mut string_buffer_reader = Reader::new(&type_tree.string_buffer, ByteOrder::Big);
         for node in &mut type_tree.nodes {
             node.type_ = read_string(&mut string_buffer_reader, node.type_str_offset)?;
             node.name = read_string(&mut string_buffer_reader, node.name_str_offset)?;
@@ -325,16 +322,11 @@ impl Asset {
         Ok(())
     }
 
-    pub fn read_type_tree(
-        &mut self,
-        r: &mut Reader,
-        type_tree: &mut TypeTree,
-        level: i32,
-    ) -> Result<()> {
+    pub fn read_type_tree(&mut self, r: &mut Reader, type_tree: &mut TypeTree, level: i32) -> UnityResult<()> {
         let mut type_tree_node = TypeTreeNode::default();
         type_tree_node.level = level;
-        type_tree_node.type_ = r.read_string_utill_null()?;
-        type_tree_node.name = r.read_string_utill_null()?;
+        type_tree_node.type_ = r.read_string_util_null()?;
+        type_tree_node.name = r.read_string_util_null()?;
         type_tree_node.size = r.read_i32()?;
         if self.header.version == 2 {
             let _variable_count = r.read_i32()?;

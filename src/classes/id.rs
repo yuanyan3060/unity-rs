@@ -2,7 +2,7 @@ use num_enum::FromPrimitive;
 
 #[derive(Debug, Eq, PartialEq, FromPrimitive)]
 #[repr(i32)]
-pub enum ClassIDType {
+pub enum ClassID {
     #[num_enum(default)]
     UnknownType = -1,
     Object = 0,

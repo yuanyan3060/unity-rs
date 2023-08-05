@@ -1,11 +1,18 @@
-#![allow(unused)]
-#![allow(non_camel_case_types)]
-use crate::unity::{object::ObjectInfo, AssetBundle, Error, FromObject, Reader, Result, Object};
-use bytes::Bytes;
-use image::{ImageBuffer, Rgba, RgbaImage};
+#![allow(dead_code, non_upper_case_globals)]
+use std::sync::Arc;
+use dashmap::DashMap;
+use dashmap::mapref::one::Ref;
+use image::{DynamicImage, ImageBuffer, Rgba};
 use num_enum::FromPrimitive;
+use crate::classes::FromObject;
+use crate::env::Object;
+use crate::error::{UnityError, UnityResult};
+use crate::object::ObjectInfo;
+use crate::reader::{ByteOrder, Reader};
 
 use super::decode::{decode_etc1, decode_etc2, decode_etc2a8};
+
+#[allow(non_camel_case_types, non_upper_case_globals)]
 #[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy)]
 #[repr(i32)]
 pub enum TextureFormat {
@@ -90,15 +97,15 @@ pub struct GLTextureSettings {
 }
 
 impl GLTextureSettings {
-    pub fn load(object_info: &ObjectInfo, r: &mut Reader) -> Result<Self> {
+    pub fn load(object_info: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
         let mut result = Self::default();
         result.filter_mode = r.read_i32()?;
         result.aniso = r.read_i32()?;
         result.mip_bias = r.read_f32()?;
         if object_info.version[0] >= 2017 {
             result.wrap_mode = r.read_i32()?;
-            let wrap_w = r.read_i32()?;
-            let wrap_h = r.read_i32()?;
+            let _wrap_w = r.read_i32()?;
+            let _wrap_h = r.read_i32()?;
         } else {
             result.wrap_mode = r.read_i32()?;
         }
@@ -114,7 +121,7 @@ pub struct StreamingInfo {
 }
 
 impl StreamingInfo {
-    pub fn load(object_info: &ObjectInfo, r: &mut Reader) -> Result<Self> {
+    pub fn load(object_info: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
         let mut result = Self::default();
         if object_info.version[0] >= 2020 {
             result.offset = r.read_u64()?;
@@ -126,8 +133,11 @@ impl StreamingInfo {
         Ok(result)
     }
 }
+
 #[derive(Default)]
 pub struct Texture2D {
+    cache: Arc<DashMap<i64, DynamicImage>>,
+    pub path_id: i64,
     pub name: String,
     pub forced_fallback_format: i32,
     pub downscale_fallback: bool,
@@ -145,20 +155,22 @@ pub struct Texture2D {
     pub size: i32,
     pub stream_info: StreamingInfo,
     pub texture_setting: GLTextureSettings,
-    pub data: Bytes,
+    pub data: Vec<u8>,
 }
-impl FromObject for Texture2D {
-    fn load(object: &Object) -> Result<Self> {
-        let mut r = object.info.reader.clone();
-        r.set_offset(object.info.bytes_start as usize)?;
+
+impl <'a>FromObject<'a> for Texture2D {
+    fn load(object: &Object) -> UnityResult<Self> {
+        let mut r = object.info.get_reader();
         let mut result = Self::default();
+        result.cache = object.cache.clone();
+        result.path_id = object.info.path_id;
         result.name = r.read_aligned_string()?;
         let version = &object.info.version;
         if version[0] > 2017 || (version[0] == 2017 && version[1] >= 3) {
             result.forced_fallback_format = r.read_i32()?;
             result.downscale_fallback = r.read_bool()?;
             if version[0] > 2020 || (version[0] == 2020 && version[1] >= 2) {
-                let is_alpha_channel_optional = r.read_bool()?;
+                let _is_alpha_channel_optional = r.read_bool()?;
             }
             r.align(4)?;
         }
@@ -166,14 +178,14 @@ impl FromObject for Texture2D {
         result.height = r.read_i32()?;
         result.complete_image_size = r.read_i32()?;
         if object.info.version[0] >= 2020 {
-            let mips_stripped = r.read_i32()?;
+            let _mips_stripped = r.read_i32()?;
         }
         result.format = TextureFormat::from(r.read_i32()?);
-        let mut mip_map = false;
+        let mut _mip_map = false;
         if object.info.version[0] < 5 {
-            mip_map = r.read_bool()?;
+            _mip_map = r.read_bool()?;
         } else if object.info.version[0] == 5 && object.info.version[1] < 2 {
-            mip_map = r.read_bool()?;
+            _mip_map = r.read_bool()?;
         } else {
             result.mip_count = r.read_i32()?;
         }
@@ -181,22 +193,22 @@ impl FromObject for Texture2D {
             result.is_read_able = r.read_bool()?;
         }
         if version[0] >= 2020 {
-            let is_pre_processed = r.read_bool()?;
+            let _is_pre_processed = r.read_bool()?;
         }
         if version[0] > 2019 || (version[0] == 2019 && version[1] >= 3) {
-            let is_ignore_master_texture_limit = r.read_bool()?;
+            let _is_ignore_master_texture_limit = r.read_bool()?;
         }
         if version[0] >= 3 {
             if version[0] < 5 || (version[0] == 5 && version[1] <= 4) {
-                let read_allowed = r.read_bool()?;
+                let _read_allowed = r.read_bool()?;
             }
         }
         if version[0] > 2018 || (version[0] == 2018 && version[1] >= 2) {
-            let streaming_mip_maps = r.read_bool()?;
+            let _streaming_mip_maps = r.read_bool()?;
         }
         r.align(4)?;
         if version[0] > 2018 || (version[0] == 2018 && version[1] >= 2) {
-            let streaming_mip_maps_priority = r.read_i32()?;
+            let _streaming_mip_maps_priority = r.read_i32()?;
         }
         result.image_count = r.read_i32()?;
         result.texture_dimension = r.read_i32()?;
@@ -209,7 +221,7 @@ impl FromObject for Texture2D {
         }
         if version[0] > 2020 || (version[0] == 2020 && version[1] >= 2) {
             let length = r.read_i32()?;
-            let platform_blob = r.read_u8_slice(length as usize)?;
+            let _platform_blob = r.read_u8_slice(length as usize)?;
             r.align(4)?;
         }
         result.size = r.read_i32()?;
@@ -224,14 +236,14 @@ impl FromObject for Texture2D {
                 .path
                 .split("/")
                 .last()
-                .ok_or(Error::InvalidValue)?;
-            for i in 0..object.info.bundle.nodes.len() {
-                let node = &object.info.bundle.nodes[i];
+                .ok_or(UnityError::InvalidValue)?;
+            for i in 0..object.bundle.nodes.len() {
+                let node = &object.bundle.nodes[i];
                 if node.path != path {
                     continue;
                 }
-                let file = &object.info.bundle.files[i];
-                let mut r = Reader::new(file.clone(), crate::unity::ByteOrder::Big);
+                let file = &object.bundle.files[i];
+                let mut r = Reader::new(file.as_slice(), ByteOrder::Big);
                 r.set_offset(result.stream_info.offset as usize)?;
                 result.data = r.read_u8_list(result.stream_info.size as usize)?;
             }
@@ -240,30 +252,39 @@ impl FromObject for Texture2D {
     }
 }
 impl Texture2D {
-    pub fn decode_image(&self) -> Result<RgbaImage> {
+    pub fn decode_image(&self)-> UnityResult<Ref<i64, DynamicImage>>{
+        if let Some(img) = self.cache.get(&self.path_id){
+            return Ok(img)
+        }
+        let img = self.decode_image_without_cache()?;
+        self.cache.insert(self.path_id, img);
+        return Ok(self.cache.get(&self.path_id).unwrap());
+    }
+
+    pub fn decode_image_without_cache(&self) -> UnityResult<DynamicImage> {
         let width = self.width;
         let height = self.height;
         let format = self.format;
-        match format {
+        return match format {
             TextureFormat::ETC2_RGBA8 => {
                 let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::new(width as u32, height as u32);
                 decode_etc2a8(&self.data, width as usize, height as usize, result.as_mut());
-                return Ok(result.into());
+                Ok(result.into())
             }
             TextureFormat::ETC2_RGB => {
                 let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::new(width as u32, height as u32);
                 decode_etc2(&self.data, width as usize, height as usize, result.as_mut());
-                return Ok(result.into());
+                Ok(result.into())
             }
             TextureFormat::ETC_RGB4 => {
                 let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::new(width as u32, height as u32);
                 decode_etc1(&self.data, width as usize, height as usize, result.as_mut());
-                return Ok(result.into());
+                Ok(result.into())
             }
-            _ => return Err(Error::Unimplemented),
+            _ => Err(UnityError::Unimplemented),
         }
     }
 }

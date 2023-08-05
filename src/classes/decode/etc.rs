@@ -1,5 +1,6 @@
 #![allow(unused)]
 #![allow(non_upper_case_globals)]
+
 static WriteOrderTable: [u8; 16] = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15];
 static WriteOrderTableRev: [u8; 16] = [15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0];
 static Etc1ModifierTable: [[u8; 2]; 8] = [
@@ -58,9 +59,12 @@ static Etc2AlphaModTable: [[i8; 8]; 16] = [
     [-3, -5, -7, -9, 2, 4, 6, 8],
 ];
 
+#[inline(always)]
 pub fn color(r: u8, g: u8, b: u8, a: u8) -> [u8; 4] {
     [r, g, b, a]
 }
+
+#[inline(always)]
 pub fn clamp(n: i32) -> u8 {
     if n < 0 {
         return 0;
@@ -71,6 +75,7 @@ pub fn clamp(n: i32) -> u8 {
     }
 }
 
+#[inline(always)]
 pub fn applicate_color(c: [u8; 3], m: i32) -> [u8; 4] {
     color(
         clamp(c[0] as i32 + m),
@@ -80,6 +85,7 @@ pub fn applicate_color(c: [u8; 3], m: i32) -> [u8; 4] {
     )
 }
 
+#[inline(always)]
 pub fn applicate_color_alpha(c: [u8; 3], m: i32, transparent: u8) -> [u8; 4] {
     let a = {
         if transparent > 0 {
@@ -96,10 +102,12 @@ pub fn applicate_color_alpha(c: [u8; 3], m: i32, transparent: u8) -> [u8; 4] {
     )
 }
 
+#[inline(always)]
 pub fn applicate_color_raw(c: [u8; 3]) -> [u8; 4] {
     color(c[0], c[1], c[2], 255)
 }
 
+#[inline(always)]
 pub fn copy_block_buffer(
     bx: usize,
     by: usize,
@@ -107,33 +115,32 @@ pub fn copy_block_buffer(
     h: usize,
     bw: usize,
     bh: usize,
-    buffer: &[[u8;4]],
+    buffer: &[[u8; 4]],
     image: &mut [u8],
 ) {
-    let x = bw * bx;
-    let xl = {
-        if bw * (bx + 1) > w {
-            w - bw * bx
-        } else {
-            bw
+    unsafe {
+        let image = image.as_mut_ptr() as *mut [u8; 4];
+        let x = bw * bx;
+        let xl = {
+            if bw * (bx + 1) > w {
+                w - bw * bx
+            } else {
+                bw
+            }
+        };
+        let mut buffer_offset = 0;
+        let buffer_end = bw * bh;
+        for y in by * bh..h {
+            if buffer_offset >= buffer_end {
+                break;
+            }
+            for i in 0..xl {
+                let y = h - 1 - y;
+                let offset = y * w + x + i;
+                *image.add(offset) = *buffer.get_unchecked(buffer_offset + i);
+            }
+            buffer_offset += bw;
         }
-    };
-    let mut buffer_offset = 0;
-    let buffer_end = bw * bh;
-    for y in by * bh..h {
-        if buffer_offset >= buffer_end {
-            break;
-        }
-        for i in 0..xl {
-            let y = h-1-y;
-            let offset = (y * w + x + i)*4;
-            let color = &buffer[buffer_offset + i];
-            image[offset+0] = color[0];
-            image[offset+1] = color[1];
-            image[offset+2] = color[2];
-            image[offset+3] = color[3];
-        }
-        buffer_offset += bw;
     }
 }
 
@@ -141,7 +148,7 @@ pub fn decode_etc1_block(data: &[u8], outbuf: &mut [[u8; 4]]) {
     let code = [data[3] >> 5, data[3] >> 2 & 0x07];
     let table = Etc1SubblockTable[(data[3] & 0x01) as usize];
     let mut c: [[u8; 3]; 2] = [[0; 3]; 2];
-    if (data[3] & 2)!=0 {
+    if (data[3] & 2) != 0 {
         // diff bit == 1
         c[0][0] = data[0] & 0xf8;
         c[0][1] = data[1] & 0xf8;
@@ -163,12 +170,12 @@ pub fn decode_etc1_block(data: &[u8], outbuf: &mut [[u8; 4]]) {
         c[0][2] = (data[2] & 0xf0) | data[2] >> 4;
         c[1][2] = (data[2] & 0x0f) | data[2] << 4;
     }
-    let mut j:u16 = (data[6] as u16) << 8 | data[7] as u16;  // less significant pixel index bits
-    let mut k:u16 = (data[4] as u16) << 8 | data[5] as u16;  // more significant pixel index bits
+    let mut j: u16 = (data[6] as u16) << 8 | data[7] as u16;  // less significant pixel index bits
+    let mut k: u16 = (data[4] as u16) << 8 | data[5] as u16;  // more significant pixel index bits
     for i in 0..16 {
         let s = table[i] as usize;
         let mut m = Etc1ModifierTable[code[s] as usize][(j & 1) as usize] as i32;
-        if (k&1)!=0{
+        if (k & 1) != 0 {
             m = -m;
         }
         outbuf[WriteOrderTable[i] as usize] = applicate_color(c[s], m);
@@ -176,6 +183,7 @@ pub fn decode_etc1_block(data: &[u8], outbuf: &mut [[u8; 4]]) {
         k >>= 1;
     }
 }
+
 pub fn decode_etc2_block(data: &[u8], outbuf: &mut [[u8; 4]]) {
     let mut j = u16::from_be_bytes([data[6], data[7]]) as u32;
     let mut k = u16::from_be_bytes([data[4], data[5]]) as u32;
@@ -223,7 +231,7 @@ pub fn decode_etc2_block(data: &[u8], outbuf: &mut [[u8; 4]]) {
             let mut d = (data[3] & 4) | (data[3] << 1 & 2);
             if c[0][0] > c[1][0]
                 || (c[0][0] == c[1][0]
-                    && (c[0][1] > c[1][1] || (c[0][1] == c[1][1] && c[0][2] >= c[1][2])))
+                && (c[0][1] > c[1][1] || (c[0][1] == c[1][1] && c[0][2] >= c[1][2])))
             {
                 d += 1;
             }
@@ -360,7 +368,7 @@ pub fn decode_etc2a8_block(data: &[u8], outbuf: &mut [[u8; 4]]) {
     }
 }
 
-pub fn decode_etc1(data: &[u8], w: usize, h: usize, image:&mut[u8]){
+pub fn decode_etc1(data: &[u8], w: usize, h: usize, image: &mut [u8]) {
     let num_blocks_x = (w + 3) / 4;
     let num_blocks_y = (h + 3) / 4;
     let mut buffer = [[0; 4]; 16];
@@ -374,7 +382,7 @@ pub fn decode_etc1(data: &[u8], w: usize, h: usize, image:&mut[u8]){
     }
 }
 
-pub fn decode_etc2a8(data: &[u8], w: usize, h: usize, image:&mut[u8]){
+pub fn decode_etc2a8(data: &[u8], w: usize, h: usize, image: &mut [u8]) {
     let num_blocks_x = (w + 3) / 4;
     let num_blocks_y = (h + 3) / 4;
     let mut buffer = [[0; 4]; 16];
@@ -389,7 +397,7 @@ pub fn decode_etc2a8(data: &[u8], w: usize, h: usize, image:&mut[u8]){
     }
 }
 
-pub fn decode_etc2(data: &[u8], w: usize, h: usize, image:&mut[u8]){
+pub fn decode_etc2(data: &[u8], w: usize, h: usize, image: &mut [u8]) {
     let num_blocks_x = (w + 3) / 4;
     let num_blocks_y = (h + 3) / 4;
     let mut buffer = [[0; 4]; 16];

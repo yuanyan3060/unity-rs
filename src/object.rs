@@ -1,89 +1,53 @@
-use std::{sync::Arc, collections::HashMap};
+use std::collections::HashMap;
+use std::sync::Arc;
+use serde_json::{json, Value};
+use crate::asset::SerializedType;
+use crate::classes::ClassID;
+use crate::error::UnityResult;
+use crate::reader::{ByteOrder, Reader};
+use crate::typetree::TypeTreeNode;
 
-use bytes::Bytes;
-use serde_json::json;
-
-use super::{AssetBundle, Asset, Result, bundle::FileType, object::ObjectInfo, class_id, type_node::TypeTreeNode, Reader};
-
-pub struct Env{
-    pub(super) bundle:Arc<AssetBundle>,
-    pub(super) assets:Vec<Asset>,
-    pub object_info_map: Arc<HashMap<i64, ObjectInfo>>
+#[derive(Clone)]
+pub struct ObjectInfo {
+    pub build_type: String,
+    pub asset_version: u32,
+    pub bytes_start: usize,
+    pub bytes_size: usize,
+    pub data: Arc<Vec<u8>>,
+    pub bytes_order: ByteOrder,
+    pub type_id: i32,
+    pub class_id: i32,
+    pub is_destroyed: u16,
+    pub stripped: u8,
+    pub path_id: i64,
+    pub serialized_type: SerializedType,
+    pub version: [i32; 4],
 }
 
-
-impl Env {
-    pub fn load(data:Bytes)->Result<Self>{
-        let bundle = Arc::new(AssetBundle::load(data)?);
-        let mut assets = Vec::new();
-        for f in &bundle.files {
-            if let FileType::AssetsFile = AssetBundle::check_file_type(f.clone())? {
-                let a = Asset::new(f.clone(), bundle.clone())?;
-                assets.push(a);
-            }
-        }
-        let mut object_info_map = HashMap::new();
-        for a in &assets{
-            for i in &a.objects_info{
-                object_info_map.insert(i.path_id, i.clone());
-            }
-        }
-        Ok(Env { bundle, assets, object_info_map:Arc::new(object_info_map)})
+impl ObjectInfo {
+    pub fn get_reader(&self) -> Reader {
+        Reader::new(&self.data[self.bytes_start..], self.bytes_order)
     }
 
-    pub fn objects(&self)->HashMap<i64, Object>{
+    pub fn class(&self) ->ClassID{
+        ClassID::from(self.class_id)
+    }
+
+    pub fn read_type_tree(&self) -> UnityResult<HashMap<String, Value>>{
+        let mut r = self.get_reader();
         let mut result = HashMap::new();
-        for (k, v) in &*self.object_info_map{
-            result.insert(*k, Object{info:v.clone(), info_map:self.object_info_map.clone()});
-        }
-        result
-    }
-}
-
-pub struct Object{
-    pub info: ObjectInfo,
-    pub info_map: Arc<HashMap<i64, ObjectInfo>>
-}
-
-pub trait FromObject {
-    fn load(object: &Object) -> Result<Self>
-    where
-        Self: Sized;
-}
-
-impl Object {
-    pub fn read<T: FromObject>(&self) -> Result<T> {
-        T::load(self)
-    }
-
-    pub fn class(&self) -> class_id::ClassIDType {
-        class_id::ClassIDType::from(self.info.class_id)
-    }
-
-    pub fn read_type_tree(&self) -> Result<serde_json::Map<String, serde_json::Value>> {
-        let mut r = self.info.reader.clone();
-        r.set_offset(self.info.bytes_start as usize)?;
-        let mut result = serde_json::Map::new();
-        let nodes = &self.info.serialized_type.type_tree.nodes;
+        let nodes = &self.serialized_type.type_tree.nodes;
         let mut i = 1;
-        loop {
-            if i >= nodes.len() {
-                break;
-            }
+        while i<nodes.len(){
             let node = &nodes[i];
             let value = Self::read_type_tree_value(&nodes, &mut r, &mut i)?;
             result.insert(node.name.clone(), value);
-            
             i += 1;
         }
         Ok(result)
     }
 
-    fn read_type_tree_value(
-        nodes: &[TypeTreeNode],
-        r: &mut Reader,
-        index: &mut usize,
-    ) -> Result<serde_json::Value> {
+    fn read_type_tree_value(nodes: &[TypeTreeNode], r: &mut Reader, index: &mut usize) -> UnityResult<Value> {
         fn get_nodes(nodes: &[TypeTreeNode], index: usize) -> Vec<TypeTreeNode> {
             let mut result = vec![nodes[index].clone()];
             let level = nodes[index].level;
@@ -123,17 +87,11 @@ impl Object {
                 let first = get_nodes(&map_, 4);
                 let second = get_nodes(&map_, 4 + first.len());
                 let size = r.read_i32()? as usize;
-                /*let mut v = Vec::with_capacity(size);
-                for _ in 0..size {
-                    let key = Self::read_type_tree_value(&first, r, &mut 0)?;
-                    let value_ = Self::read_type_tree_value(&second, r, &mut 0)?;
-                    v.push(json!({key.as_str().unwrap():value_}))
-                }*/
                 let mut v = serde_json::Map::new();
                 for _ in 0..size {
                     let key = Self::read_type_tree_value(&first, r, &mut 0)?;
                     let key = match key {
-                        serde_json::Value::String(_) => key.as_str().unwrap().to_string(),
+                        Value::String(_) => key.as_str().unwrap().to_string(),
                         _=>key.to_string()
                     };
                     let value_ = Self::read_type_tree_value(&second, r, &mut 0)?;

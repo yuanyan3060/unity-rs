@@ -1,4 +1,4 @@
-pub(super) fn common_string(index: usize) -> Option<&'static str> {
+pub fn common_string(index: usize) -> Option<&'static str> {
     match index {
         0 => Some("AABB"),
         5 => Some("AnimationClip"),
