@@ -1,5 +1,0 @@
-[profile.release]
-lto = true
-strip = "debuginfo"
-opt-level = 'z'
-panic = "abort"

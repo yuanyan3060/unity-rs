@@ -1,14 +1,14 @@
 #![allow(dead_code, non_upper_case_globals)]
-use std::sync::Arc;
-use dashmap::DashMap;
-use dashmap::mapref::one::Ref;
-use image::{DynamicImage, ImageBuffer, Rgba};
-use num_enum::FromPrimitive;
 use crate::classes::FromObject;
 use crate::env::Object;
 use crate::error::{UnityError, UnityResult};
 use crate::object::ObjectInfo;
 use crate::reader::{ByteOrder, Reader};
+use dashmap::mapref::one::Ref;
+use dashmap::DashMap;
+use image::{DynamicImage, ImageBuffer, Rgba};
+use num_enum::FromPrimitive;
+use std::sync::Arc;
 
 use super::decode::{decode_etc1, decode_etc2, decode_etc2a8};
 
@@ -158,7 +158,7 @@ pub struct Texture2D {
     pub data: Vec<u8>,
 }
 
-impl <'a>FromObject<'a> for Texture2D {
+impl<'a> FromObject<'a> for Texture2D {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let mut result = Self::default();
@@ -231,12 +231,7 @@ impl <'a>FromObject<'a> for Texture2D {
         if result.stream_info.path.is_empty() {
             result.data = r.read_u8_list(result.size as usize)?;
         } else {
-            let path = result
-                .stream_info
-                .path
-                .split("/")
-                .last()
-                .ok_or(UnityError::InvalidValue)?;
+            let path = result.stream_info.path.split("/").last().ok_or(UnityError::InvalidValue)?;
             for i in 0..object.bundle.nodes.len() {
                 let node = &object.bundle.nodes[i];
                 if node.path != path {
@@ -252,9 +247,9 @@ impl <'a>FromObject<'a> for Texture2D {
     }
 }
 impl Texture2D {
-    pub fn decode_image(&self)-> UnityResult<Ref<i64, DynamicImage>>{
-        if let Some(img) = self.cache.get(&self.path_id){
-            return Ok(img)
+    pub fn decode_image(&self) -> UnityResult<Ref<i64, DynamicImage>> {
+        if let Some(img) = self.cache.get(&self.path_id) {
+            return Ok(img);
         }
         let img = self.decode_image_without_cache()?;
         self.cache.insert(self.path_id, img);
@@ -267,24 +262,21 @@ impl Texture2D {
         let format = self.format;
         return match format {
             TextureFormat::ETC2_RGBA8 => {
-                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> =
-                    ImageBuffer::new(width as u32, height as u32);
+                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
                 decode_etc2a8(&self.data, width as usize, height as usize, result.as_mut());
                 Ok(result.into())
             }
             TextureFormat::ETC2_RGB => {
-                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> =
-                    ImageBuffer::new(width as u32, height as u32);
+                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
                 decode_etc2(&self.data, width as usize, height as usize, result.as_mut());
                 Ok(result.into())
             }
             TextureFormat::ETC_RGB4 => {
-                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> =
-                    ImageBuffer::new(width as u32, height as u32);
+                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
                 decode_etc1(&self.data, width as usize, height as usize, result.as_mut());
                 Ok(result.into())
             }
             _ => Err(UnityError::Unimplemented),
-        }
+        };
     }
 }

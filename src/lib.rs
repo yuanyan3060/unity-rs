@@ -1,15 +1,15 @@
-pub mod bundle;
-pub mod reader;
-pub mod error;
 pub mod asset;
-pub mod typetree;
-mod common;
-mod object;
-mod env;
-mod math;
+pub mod bundle;
 pub mod classes;
+mod common;
+mod env;
+pub mod error;
+mod math;
+mod object;
+pub mod reader;
+pub mod typetree;
 
 pub use crate::classes::{ClassID, Sprite};
 pub use crate::env::Env;
-pub use crate::error::UnityResult;
 pub use crate::error::UnityError;
+pub use crate::error::UnityResult;

@@ -1,6 +1,6 @@
 use thiserror::Error;
 #[derive(Error, Debug)]
-pub enum UnityError{
+pub enum UnityError {
     #[error("Eof")]
     Eof,
     #[error("Utf8")]

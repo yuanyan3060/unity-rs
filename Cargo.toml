@@ -2,12 +2,17 @@
 name = "unity_rs"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "unity assetbundle unpack"
+license = "AGPL-3.0"
+homepage = "https://github.com/yuanyan3060/unity-rs"
+repository = "https://github.com/yuanyan3060/unity-rs"
+readme = "README.md"
+keywords = ["unity", "assetbundle", "unpack"]
 
 [dependencies]
 dashmap = "5.4.0"
 image = "0.24.6"
+imageproc = "0.23.0"
 lz4_flex = "0.10.0"
 lzma-rs = "0.3.0"
 num_enum = "0.6.1"

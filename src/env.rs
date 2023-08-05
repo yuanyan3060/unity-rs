@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-use std::iter::zip;
-use std::sync::Arc;
-use dashmap::DashMap;
-use image::DynamicImage;
-use serde_json::Value;
 use crate::asset::Asset;
 use crate::bundle::AssetBundle;
 use crate::classes::{ClassID, FromObject};
+use dashmap::DashMap;
+use image::DynamicImage;
+use serde_json::Value;
+use std::collections::HashMap;
+use std::iter::zip;
+use std::sync::Arc;
 
 use crate::error::UnityResult;
 use crate::object::ObjectInfo;
@@ -14,7 +14,7 @@ use crate::object::ObjectInfo;
 pub struct Env {
     pub bundles: Vec<AssetBundle>,
     pub assets: Vec<Vec<Asset>>,
-    pub cache: Arc<DashMap<i64, DynamicImage>>
+    pub cache: Arc<DashMap<i64, DynamicImage>>,
 }
 
 impl Env {
@@ -22,7 +22,7 @@ impl Env {
         Self {
             bundles: Vec::new(),
             assets: Vec::new(),
-            cache: Arc::new(DashMap::new())
+            cache: Arc::new(DashMap::new()),
         }
     }
 
@@ -33,17 +33,17 @@ impl Env {
         Ok(())
     }
 
-    pub fn objects(&self) -> Vec<Object>{
+    pub fn objects(&self) -> Vec<Object> {
         let mut result = Vec::new();
-        for (bundle, assets) in zip(&self.bundles, &self.assets){
-            for asset in assets{
-                for info in &asset.objects_info{
-                    result.push(Object{
+        for (bundle, assets) in zip(&self.bundles, &self.assets) {
+            for asset in assets {
+                for info in &asset.objects_info {
+                    result.push(Object {
                         env: self,
                         bundle,
                         asset,
                         info: info.clone(),
-                        cache: self.cache.clone()
+                        cache: self.cache.clone(),
                     })
                 }
             }
@@ -51,19 +51,19 @@ impl Env {
         result
     }
 
-    pub fn find_object(&self, path_id:i64) -> Option<Object> {
-        for (bundle, assets) in zip(&self.bundles, &self.assets){
-            for asset in assets{
-                for info in &asset.objects_info{
-                   if info.path_id == path_id{
-                       return Some(Object{
-                           env: self,
-                           bundle,
-                           asset,
-                           info: info.clone(),
-                           cache: self.cache.clone()
-                       })
-                   }
+    pub fn find_object(&self, path_id: i64) -> Option<Object> {
+        for (bundle, assets) in zip(&self.bundles, &self.assets) {
+            for asset in assets {
+                for info in &asset.objects_info {
+                    if info.path_id == path_id {
+                        return Some(Object {
+                            env: self,
+                            bundle,
+                            asset,
+                            info: info.clone(),
+                            cache: self.cache.clone(),
+                        });
+                    }
                 }
             }
         }
@@ -71,8 +71,8 @@ impl Env {
     }
 }
 
-pub struct Object<'a>{
-    pub env:&'a Env,
+pub struct Object<'a> {
+    pub env: &'a Env,
     pub bundle: &'a AssetBundle,
     pub asset: &'a Asset,
     pub info: ObjectInfo,
@@ -84,11 +84,11 @@ impl<'a> Object<'a> {
         T::load(self)
     }
 
-    pub fn class(&self) ->ClassID{
+    pub fn class(&self) -> ClassID {
         ClassID::from(self.info.class_id)
     }
 
-    pub fn read_type_tree(&self) -> UnityResult<HashMap<String, Value>>{
+    pub fn read_type_tree(&self) -> UnityResult<HashMap<String, Value>> {
         self.info.read_type_tree()
     }
 }

@@ -1,9 +1,9 @@
-
+#![allow(non_upper_case_globals)]
 use super::animation_clip::AABB;
-use num_enum::TryFromPrimitive;
 use crate::error::{UnityError, UnityResult};
 use crate::object::ObjectInfo;
 use crate::reader::Reader;
+use num_enum::TryFromPrimitive;
 
 #[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(i32)]
@@ -24,13 +24,13 @@ impl Default for GfxPrimitiveType {
 
 #[derive(Default, Debug)]
 pub struct SubMesh {
-    pub first_bytes: u8,
-    pub index_count: u8,
+    pub first_bytes: u32,
+    pub index_count: u32,
     pub topology: GfxPrimitiveType,
-    pub triangle_count: u8,
-    pub base_vertex: u8,
-    pub first_vertex: u8,
-    pub vertex_count: u8,
+    pub triangle_count: u32,
+    pub base_vertex: u32,
+    pub first_vertex: u32,
+    pub vertex_count: u32,
     pub local_aabb: Option<AABB>,
 }
 
@@ -38,20 +38,20 @@ impl SubMesh {
     pub(super) fn load(object: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
         let mut result = Self::default();
         let version = object.version;
-        result.first_bytes = r.read_u32()? as u8;
-        result.index_count = r.read_u32()? as u8;
+        result.first_bytes = r.read_u32()?;
+        result.index_count = r.read_u32()?;
         result.topology = r.read_i32()?.try_into().or(Err(UnityError::InvalidValue))?;
         if version[0] < 4 {
-            result.triangle_count = r.read_u32()? as u8;
+            result.triangle_count = r.read_u32()?;
         }
 
         if version[0] > 2017 || (version[0] == 2017 && version[1] >= 3) {
-            result.base_vertex = r.read_u32()? as u8;
+            result.base_vertex = r.read_u32()?;
         }
 
         if version[0] >= 3 {
-            result.first_vertex = r.read_u32()? as u8;
-            result.vertex_count = r.read_u32()? as u8;
+            result.first_vertex = r.read_u32()?;
+            result.vertex_count = r.read_u32()?;
             result.local_aabb = Some(AABB::load(r)?);
         }
         Ok(result)
@@ -121,7 +121,7 @@ impl VertexData {
             result.current_channels = r.read_u32()? as u8;
         }
 
-        result.vertex_count= r.read_u32()? as u8;
+        result.vertex_count = r.read_u32()? as u8;
 
         if version[0] >= 4 {
             let size = r.read_i32()?;
@@ -133,7 +133,7 @@ impl VertexData {
             if version[0] < 4 {
                 result.streams = Vec::with_capacity(4);
             } else {
-                result.streams= Vec::with_capacity(r.read_i32()? as usize);
+                result.streams = Vec::with_capacity(r.read_i32()? as usize);
             }
             for _ in 0..result.streams.capacity() {
                 result.streams.push(StreamInfo::load(object, r)?)
@@ -224,7 +224,7 @@ impl VertexData {
                 frequency: 0,
                 divider_op: 0,
             });
-            offset += self.vertex_count * stride;
+            offset += std::num::Wrapping(self.vertex_count) * std::num::Wrapping(stride);
             offset = offset + std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
         }
         Ok(())
@@ -324,5 +324,19 @@ impl VertexFormat {
             VertexFormat::UInt8 => 1,
             VertexFormat::SInt8 => 1,
         }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct BoneWeights4 {
+    pub weight: [f32; 4],
+    pub bone_index: [i32; 4],
+}
+
+impl BoneWeights4 {
+    pub(super) fn load(_object: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
+        let weight = r.read_f32_array::<4>()?;
+        let bone_index = r.read_i32_array::<4>()?;
+        Ok(Self { weight, bone_index })
     }
 }

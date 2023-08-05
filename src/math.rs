@@ -1,26 +1,26 @@
 #[derive(Default, Debug, Copy, Clone)]
-pub struct RectF32{
+pub struct RectF32 {
     pub x: f32,
     pub y: f32,
     pub w: f32,
-    pub h: f32
+    pub h: f32,
 }
 
 #[derive(Default, Debug, Copy, Clone)]
-pub struct Vector2{
+pub struct Vector2 {
     pub x: f32,
     pub y: f32,
 }
 
 #[derive(Default, Debug, Copy, Clone)]
-pub struct Vector3{
+pub struct Vector3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
 #[derive(Default, Debug, Copy, Clone)]
-pub struct Vector4{
+pub struct Vector4 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -28,7 +28,7 @@ pub struct Vector4{
 }
 
 #[derive(Default, Debug, Copy, Clone)]
-pub struct Matrix4x4{
+pub struct Matrix4x4 {
     pub m00: f32,
     pub m10: f32,
     pub m20: f32,

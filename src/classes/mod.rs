@@ -1,23 +1,24 @@
+mod animation_clip;
+mod decode;
 mod id;
+mod mesh;
+mod pptr;
+mod sprite;
+mod sprite_atlas;
 mod text_asset;
 mod texture2d;
-mod decode;
-mod sprite;
-mod pptr;
-mod mesh;
-mod animation_clip;
-mod sprite_atlas;
 
-pub use id::ClassID;
 use crate::error::UnityResult;
+pub use id::ClassID;
 
-pub use texture2d::Texture2D;
-pub use text_asset::TextAsset;
-pub use sprite::Sprite;
 use crate::env::Object;
+pub use sprite::Sprite;
+pub use text_asset::TextAsset;
+pub use texture2d::Texture2D;
 
 pub trait FromObject<'a>
-    where Self: Sized
+where
+    Self: Sized,
 {
     fn load(object: &'a Object<'a>) -> UnityResult<Self>;
 }

@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use serde_json::{json, Value};
 use crate::asset::SerializedType;
 use crate::classes::ClassID;
 use crate::error::UnityResult;
 use crate::reader::{ByteOrder, Reader};
 use crate::typetree::TypeTreeNode;
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ObjectInfo {
@@ -29,16 +29,16 @@ impl ObjectInfo {
         Reader::new(&self.data[self.bytes_start..], self.bytes_order)
     }
 
-    pub fn class(&self) ->ClassID{
+    pub fn class(&self) -> ClassID {
         ClassID::from(self.class_id)
     }
 
-    pub fn read_type_tree(&self) -> UnityResult<HashMap<String, Value>>{
+    pub fn read_type_tree(&self) -> UnityResult<HashMap<String, Value>> {
         let mut r = self.get_reader();
         let mut result = HashMap::new();
         let nodes = &self.serialized_type.type_tree.nodes;
         let mut i = 1;
-        while i<nodes.len(){
+        while i < nodes.len() {
             let node = &nodes[i];
             let value = Self::read_type_tree_value(&nodes, &mut r, &mut i)?;
             result.insert(node.name.clone(), value);
@@ -92,10 +92,10 @@ impl ObjectInfo {
                     let key = Self::read_type_tree_value(&first, r, &mut 0)?;
                     let key = match key {
                         Value::String(_) => key.as_str().unwrap().to_string(),
-                        _=>key.to_string()
+                        _ => key.to_string(),
                     };
                     let value_ = Self::read_type_tree_value(&second, r, &mut 0)?;
-                    v.insert(key.to_string(),value_);
+                    v.insert(key.to_string(), value_);
                 }
                 json!(v)
             }
@@ -129,7 +129,7 @@ impl ObjectInfo {
                         }
                         let clz_node = &clz[*j];
                         v.insert(clz_node.name.clone(), Self::read_type_tree_value(&clz, r, j)?);
-                        *j+=1;
+                        *j += 1;
                     }
                     json!(v)
                 }

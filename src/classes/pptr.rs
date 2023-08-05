@@ -1,58 +1,50 @@
-use std::{marker::PhantomData, any::type_name};
-use std::iter::zip;
 use crate::classes::FromObject;
 use crate::env::{Env, Object};
 use crate::error::UnityResult;
 use crate::reader::Reader;
+use std::iter::zip;
+use std::{any::type_name, marker::PhantomData};
 
-pub struct PPtr<'a, T: FromObject<'a>+'a> {
-    env:&'a Env,
+pub struct PPtr<'a, T: FromObject<'a> + 'a> {
+    env: &'a Env,
     pub file_id: i32,
     pub path_id: i64,
     target: PhantomData<T>,
-    obj: Option<Object<'a>>
 }
-
 
 impl<'a, T: FromObject<'a>> PPtr<'a, T> {
     pub fn load(object: &'a Object, r: &mut Reader) -> UnityResult<Self> {
         let file_id = r.read_i32()?;
-        let path_id = if object.info.asset_version < 14 {
-            r.read_i32()? as i64
-        } else {
-            r.read_i64()?
-        };
+        let path_id = if object.info.asset_version < 14 { r.read_i32()? as i64 } else { r.read_i64()? };
         Ok(Self {
             env: object.env,
             file_id,
             path_id,
             target: PhantomData::default(),
-            obj: None
         })
     }
 
-    pub fn get_obj(&mut self) -> Option<&Object<'a>> {
-        if self.path_id==0{
-            return self.obj.as_ref()
+    pub fn get_obj(&self) -> Option<Object<'a>> {
+        if self.path_id == 0 {
+            return None;
         }
-        for (bundle, assets) in zip(&self.env.bundles, &self.env.assets){
-            for asset in assets{
-                for info in &asset.objects_info{
-                    if info.path_id == self.path_id{
-                        let obj = Object{
+        for (bundle, assets) in zip(&self.env.bundles, &self.env.assets) {
+            for asset in assets {
+                for info in &asset.objects_info {
+                    if info.path_id == self.path_id {
+                        let obj = Object {
                             env: self.env,
                             bundle,
                             asset,
                             info: info.clone(),
-                            cache: self.env.cache.clone()
+                            cache: self.env.cache.clone(),
                         };
-                        self.obj = Some(obj);
-                        return self.obj.as_ref();
+                        return Some(obj);
                     }
                 }
             }
         }
-        return self.obj.as_ref();
+        return None;
     }
 }
 

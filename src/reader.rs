@@ -16,11 +16,7 @@ pub struct Reader<'a> {
 
 impl<'a> Reader<'a> {
     pub fn new(buf: &'a [u8], order: ByteOrder) -> Self {
-        Self {
-            buf,
-            offset: 0,
-            order,
-        }
+        Self { buf, offset: 0, order }
     }
 
     pub fn get_offset(&self) -> usize {
@@ -48,7 +44,7 @@ impl<'a> Reader<'a> {
         self.buf.len()
     }
 
-    pub fn get_order(&self) ->ByteOrder{
+    pub fn get_order(&self) -> ByteOrder {
         self.order
     }
 
@@ -87,6 +83,26 @@ impl<'a> Reader<'a> {
         let end = self.has_space(N)?;
         let slice = &self.buf[self.get_offset()..end];
         result.copy_from_slice(slice);
+        self.offset = end;
+        Ok(result)
+    }
+
+    pub fn read_f32_array<const N: usize>(&mut self) -> UnityResult<[f32; N]> {
+        let mut result = [0.0; N];
+        let end = self.has_space(N * std::mem::size_of::<f32>())?;
+        for i in 0..N {
+            result[i] = self.read_f32()?;
+        }
+        self.offset = end;
+        Ok(result)
+    }
+
+    pub fn read_i32_array<const N: usize>(&mut self) -> UnityResult<[i32; N]> {
+        let mut result = [0; N];
+        let end = self.has_space(N * std::mem::size_of::<i32>())?;
+        for i in 0..N {
+            result[i] = self.read_i32()?;
+        }
         self.offset = end;
         Ok(result)
     }
@@ -202,9 +218,9 @@ impl<'a> Reader<'a> {
         Ok(ret)
     }
 
-    pub fn read_string_util_null_with_limit(&mut self, limit:usize) -> UnityResult<String> {
+    pub fn read_string_util_null_with_limit(&mut self, limit: usize) -> UnityResult<String> {
         let mut ret = String::new();
-        for _ in 0..limit{
+        for _ in 0..limit {
             let b = self.read_u8()?;
             if b == 0 {
                 break;
@@ -215,7 +231,7 @@ impl<'a> Reader<'a> {
         Ok(ret)
     }
 
-    pub fn read_string_with_length(&mut self, length:usize) -> UnityResult<String> {
+    pub fn read_string_with_length(&mut self, length: usize) -> UnityResult<String> {
         let mut ret = String::with_capacity(length);
         for _ in 0..length {
             let b = self.read_u8()?;
@@ -230,7 +246,7 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_aligned_string(&mut self) -> UnityResult<String> {
-        let this= self as *mut Self;
+        let this = self as *mut Self;
         let length = self.read_i32()?;
         let result = self.read_string_with_length(length as usize);
         unsafe {
@@ -239,7 +255,7 @@ impl<'a> Reader<'a> {
         result
     }
 
-    pub fn read_i32_list(&mut self, length:usize) -> UnityResult<Vec<i32>> {
+    pub fn read_i32_list(&mut self, length: usize) -> UnityResult<Vec<i32>> {
         self.has_space(length)?;
         let mut ret = Vec::with_capacity(length);
         for _ in 0..length {
@@ -249,57 +265,23 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_rect_f32(&mut self) -> UnityResult<RectF32> {
-        Ok(RectF32{
-            x: self.read_f32()?,
-            y: self.read_f32()?,
-            w: self.read_f32()?,
-            h: self.read_f32()?,
-        })
+        Ok(RectF32 { x: self.read_f32()?, y: self.read_f32()?, w: self.read_f32()?, h: self.read_f32()? })
     }
 
     pub fn read_vector2(&mut self) -> UnityResult<Vector2> {
-        Ok(Vector2{
-            x: self.read_f32()?,
-            y: self.read_f32()?,
-        })
+        Ok(Vector2 { x: self.read_f32()?, y: self.read_f32()? })
     }
 
     pub fn read_vector3(&mut self) -> UnityResult<Vector3> {
-        Ok(Vector3{
-            x: self.read_f32()?,
-            y: self.read_f32()?,
-            z: self.read_f32()?,
-        })
+        Ok(Vector3 { x: self.read_f32()?, y: self.read_f32()?, z: self.read_f32()? })
     }
 
     pub fn read_vector4(&mut self) -> UnityResult<Vector4> {
-        Ok(Vector4{
-            x: self.read_f32()?,
-            y: self.read_f32()?,
-            z: self.read_f32()?,
-            w: self.read_f32()?,
-        })
+        Ok(Vector4 { x: self.read_f32()?, y: self.read_f32()?, z: self.read_f32()?, w: self.read_f32()? })
     }
 
-    pub fn read_matrix4x4(&mut self) -> UnityResult<Matrix4x4>{
-        Ok(Matrix4x4{
-            m00: self.read_f32()?,
-            m10: self.read_f32()?,
-            m20: self.read_f32()?,
-            m30: self.read_f32()?,
-            m01: self.read_f32()?,
-            m11: self.read_f32()?,
-            m21: self.read_f32()?,
-            m31: self.read_f32()?,
-            m02: self.read_f32()?,
-            m12: self.read_f32()?,
-            m22: self.read_f32()?,
-            m32: self.read_f32()?,
-            m03: self.read_f32()?,
-            m13: self.read_f32()?,
-            m23: self.read_f32()?,
-            m33: self.read_f32()?,
-        })
+    pub fn read_matrix4x4(&mut self) -> UnityResult<Matrix4x4> {
+        Ok(Matrix4x4 { m00: self.read_f32()?, m10: self.read_f32()?, m20: self.read_f32()?, m30: self.read_f32()?, m01: self.read_f32()?, m11: self.read_f32()?, m21: self.read_f32()?, m31: self.read_f32()?, m02: self.read_f32()?, m12: self.read_f32()?, m22: self.read_f32()?, m32: self.read_f32()?, m03: self.read_f32()?, m13: self.read_f32()?, m23: self.read_f32()?, m33: self.read_f32()? })
     }
 
     pub fn read_u16_list(&mut self, size: usize) -> UnityResult<Vec<u16>> {
@@ -311,13 +293,30 @@ impl<'a> Reader<'a> {
         Ok(ret)
     }
 
-    pub fn read_string_list(&mut self)->UnityResult<Vec<String>>{
+    pub fn read_string_list(&mut self) -> UnityResult<Vec<String>> {
         let length = self.read_i32()?;
         let mut result = Vec::with_capacity(length as usize);
-        for _ in 0..length{
+        for _ in 0..length {
             result.push(self.read_aligned_string()?);
         }
         Ok(result)
     }
 
+    pub fn read_f32_list(&mut self, size: usize) -> UnityResult<Vec<f32>> {
+        let _end = self.has_space(size)?;
+        let mut ret = Vec::with_capacity(size);
+        for _ in 0..size {
+            ret.push(self.read_f32()?)
+        }
+        Ok(ret)
+    }
+
+    pub fn read_matrix4x4_list(&mut self, size: usize) -> UnityResult<Vec<Matrix4x4>> {
+        let _end = self.has_space(size)?;
+        let mut ret = Vec::with_capacity(size);
+        for _ in 0..size {
+            ret.push(self.read_matrix4x4()?)
+        }
+        Ok(ret)
+    }
 }

@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use crate::asset::Asset;
 use crate::error::{UnityError, UnityResult};
 use crate::reader::{ByteOrder, Reader};
+use std::sync::Arc;
 
 #[derive(PartialEq)]
 pub enum FileType {
@@ -82,16 +82,7 @@ pub struct BundleHead {
 
 impl BundleHead {
     pub fn new() -> Self {
-        BundleHead {
-            signature: String::new(),
-            version: 0,
-            unity_version: String::new(),
-            unity_revision: String::new(),
-            size: 0,
-            compressed_blocks_info_size: 0,
-            uncompressed_blocks_info_size: 0,
-            flags: 0,
-        }
+        BundleHead { signature: String::new(), version: 0, unity_version: String::new(), unity_revision: String::new(), size: 0, compressed_blocks_info_size: 0, uncompressed_blocks_info_size: 0, flags: 0 }
     }
 }
 
@@ -122,21 +113,7 @@ impl AssetBundle {
         let version = r.read_u32()?;
         let unity_version = r.read_string_util_null()?;
         let unity_revision = r.read_string_util_null()?;
-        let mut ret = Self {
-            header: BundleHead {
-                signature,
-                version,
-                unity_version,
-                unity_revision,
-                size: 0,
-                compressed_blocks_info_size: 0,
-                uncompressed_blocks_info_size: 0,
-                flags: 0,
-            },
-            block_infos: Vec::new(),
-            nodes: Vec::new(),
-            files: Vec::new(),
-        };
+        let mut ret = Self { header: BundleHead { signature, version, unity_version, unity_revision, size: 0, compressed_blocks_info_size: 0, uncompressed_blocks_info_size: 0, flags: 0 }, block_infos: Vec::new(), nodes: Vec::new(), files: Vec::new() };
         match ret.header.signature.as_str() {
             "UnityWeb" | "UnityRaw" => unimplemented!("UnityWeb and UnityRaw are unimplemented yet"),
             "UnityFS" => {
@@ -144,7 +121,7 @@ impl AssetBundle {
                 ret.read_blocks_info_and_directory(&mut r)?;
                 let blocks_data = ret.read_blocks(&mut r)?;
                 ret.read_files(&blocks_data)?;
-            },
+            }
             _ => {
                 unimplemented!("{}", ret.header.signature)
             }
@@ -177,36 +154,23 @@ impl AssetBundle {
             block_info_bytes = r.read_u8_list(self.header.compressed_blocks_info_size as usize)?;
         }
         let uncompressed_size = self.header.uncompressed_blocks_info_size;
-        let compressed_type = CompressionType::from_magic_num(
-            self.header.flags & ArchiveFlags::CompressionTypeMask as u32,
-        )?;
+        let compressed_type = CompressionType::from_magic_num(self.header.flags & ArchiveFlags::CompressionTypeMask as u32)?;
         let block_info_uncompressed_bytes = match compressed_type {
             CompressionType::None => block_info_bytes,
             CompressionType::Lzma => todo!(),
-            CompressionType::Lz4 | CompressionType::Lz4HC => {
-                lz4_flex::decompress(&block_info_bytes, uncompressed_size as usize)?
-            }
+            CompressionType::Lz4 | CompressionType::Lz4HC => lz4_flex::decompress(&block_info_bytes, uncompressed_size as usize)?,
             CompressionType::Lzham => todo!(),
         };
         let mut block_info_reader = Reader::new(&block_info_uncompressed_bytes, ByteOrder::Big);
         let _uncompressed_data_hash = block_info_reader.read_u8_slice(16)?;
         let block_info_count = block_info_reader.read_i32()?;
         for _ in 0..block_info_count {
-            let s = StorageBlock {
-                uncompressed_size: block_info_reader.read_u32()?,
-                compressed_size: block_info_reader.read_u32()?,
-                flags: block_info_reader.read_u16()?,
-            };
+            let s = StorageBlock { uncompressed_size: block_info_reader.read_u32()?, compressed_size: block_info_reader.read_u32()?, flags: block_info_reader.read_u16()? };
             self.block_infos.push(s)
         }
         let node_count = block_info_reader.read_i32()?;
         for _ in 0..node_count {
-            let n = Node {
-                offset: block_info_reader.read_i64()?,
-                size: block_info_reader.read_i64()?,
-                flags: block_info_reader.read_u32()?,
-                path: block_info_reader.read_string_util_null()?,
-            };
+            let n = Node { offset: block_info_reader.read_i64()?, size: block_info_reader.read_i64()?, flags: block_info_reader.read_u32()?, path: block_info_reader.read_string_util_null()? };
             self.nodes.push(n)
         }
         if self.header.flags & ArchiveFlags::BlockInfoNeedPaddingAtStart as u32 != 0 {
@@ -218,9 +182,7 @@ impl AssetBundle {
     fn read_blocks(&self, r: &mut Reader) -> UnityResult<Vec<u8>> {
         let mut result = Vec::new();
         for block_info in &self.block_infos {
-            let compress_type = CompressionType::from_magic_num(
-                (block_info.flags & StorageBlockFlags::CompressionTypeMask as u16) as u32,
-            )?;
+            let compress_type = CompressionType::from_magic_num((block_info.flags & StorageBlockFlags::CompressionTypeMask as u16) as u32)?;
             match compress_type {
                 CompressionType::None => {
                     result.extend_from_slice(&r.read_u8_slice(block_info.compressed_size as usize)?);
@@ -257,7 +219,7 @@ impl AssetBundle {
         Ok(())
     }
 
-    pub(super) fn check_file_type(data: &[u8]) -> UnityResult<FileType>{
+    pub(super) fn check_file_type(data: &[u8]) -> UnityResult<FileType> {
         fn is_serialized_file(r: &mut Reader) -> UnityResult<bool> {
             if r.len() < 20 {
                 return Ok(false);
@@ -284,8 +246,8 @@ impl AssetBundle {
             }
             Ok(true)
         }
-        if data.len()<20{
-            return Ok(FileType::ResourceFile)
+        if data.len() < 20 {
+            return Ok(FileType::ResourceFile);
         }
         let gzip_magic = [0x1f, 0x8b];
         let brotli_magic = [0x62, 0x72, 0x6F, 0x74, 0x6C, 0x69];
@@ -321,11 +283,11 @@ impl AssetBundle {
         }
     }
 
-    pub fn get_assets(&self) ->UnityResult<Vec<Asset>>{
+    pub fn get_assets(&self) -> UnityResult<Vec<Asset>> {
         let mut ret = Vec::new();
         for file in &self.files {
             if FileType::AssetsFile != AssetBundle::check_file_type(file).unwrap() {
-                continue
+                continue;
             }
             ret.push(Asset::new(file.clone())?)
         }

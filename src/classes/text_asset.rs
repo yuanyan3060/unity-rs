@@ -8,21 +8,21 @@ pub struct TextAsset {
     pub path_id: i64,
 }
 
-impl <'a> FromObject<'a> for TextAsset{
+impl<'a> FromObject<'a> for TextAsset {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let name = r.read_aligned_string()?;
         let length = r.read_i32()?;
         let script = r.read_u8_list(length as usize)?;
-        Ok(Self{
+        Ok(Self {
             name,
             script,
-            path_id: object.info.path_id
+            path_id: object.info.path_id,
         })
     }
 }
 
-impl TextAsset{
+impl TextAsset {
     pub fn script_string(&self) -> UnityResult<&str> {
         Ok(std::str::from_utf8(&self.script)?)
     }
