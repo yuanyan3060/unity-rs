@@ -6,11 +6,9 @@ use crate::object::ObjectInfo;
 use crate::reader::{ByteOrder, Reader};
 use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
-use image::{DynamicImage, ImageBuffer, Rgba};
+use image::{ImageBuffer, Rgba, RgbaImage};
 use num_enum::FromPrimitive;
 use std::sync::Arc;
-
-use super::decode::{decode_etc1, decode_etc2, decode_etc2a8};
 
 #[allow(non_camel_case_types, non_upper_case_globals)]
 #[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy)]
@@ -136,7 +134,7 @@ impl StreamingInfo {
 
 #[derive(Default)]
 pub struct Texture2D {
-    cache: Arc<DashMap<i64, DynamicImage>>,
+    cache: Arc<DashMap<i64, RgbaImage>>,
     pub path_id: i64,
     pub name: String,
     pub forced_fallback_format: i32,
@@ -247,7 +245,7 @@ impl<'a> FromObject<'a> for Texture2D {
     }
 }
 impl Texture2D {
-    pub fn decode_image(&self) -> UnityResult<Ref<i64, DynamicImage>> {
+    pub fn decode_image(&self) -> UnityResult<Ref<i64, RgbaImage>> {
         if let Some(img) = self.cache.get(&self.path_id) {
             return Ok(img);
         }
@@ -256,25 +254,58 @@ impl Texture2D {
         return Ok(self.cache.get(&self.path_id).unwrap());
     }
 
-    pub fn decode_image_without_cache(&self) -> UnityResult<DynamicImage> {
+    pub fn decode_image_without_cache(&self) -> UnityResult<RgbaImage> {
         let width = self.width;
         let height = self.height;
         let format = self.format;
+        let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
+        let image = result.as_mut_ptr();
+        let image = image.cast::<u32>();
+        let image = unsafe { std::slice::from_raw_parts_mut(image, (width * height) as usize) };
         return match format {
             TextureFormat::ETC2_RGBA8 => {
-                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
-                decode_etc2a8(&self.data, width as usize, height as usize, result.as_mut());
-                Ok(result.into())
+                texture2ddecoder::decode_etc2_rgba8(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
             }
             TextureFormat::ETC2_RGB => {
-                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
-                decode_etc2(&self.data, width as usize, height as usize, result.as_mut());
-                Ok(result.into())
+                texture2ddecoder::decode_etc2_rgb(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
             }
             TextureFormat::ETC_RGB4 => {
-                let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
-                decode_etc1(&self.data, width as usize, height as usize, result.as_mut());
-                Ok(result.into())
+                texture2ddecoder::decode_etc1(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ATC_RGB4 => {
+                texture2ddecoder::decode_atc_rgb4(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ATC_RGBA8 => {
+                texture2ddecoder::decode_atc_rgba8(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGBA_4x4 => {
+                texture2ddecoder::decode_astc_4_4(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGBA_5x5 => {
+                texture2ddecoder::decode_astc_5_5(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGBA_6x6 => {
+                texture2ddecoder::decode_astc_6_6(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGBA_8x8 => {
+                texture2ddecoder::decode_astc_8_8(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGBA_10x10 => {
+                texture2ddecoder::decode_astc_10_10(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGBA_12x12 => {
+                texture2ddecoder::decode_astc_12_12(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
             }
             _ => Err(UnityError::Unimplemented),
         };

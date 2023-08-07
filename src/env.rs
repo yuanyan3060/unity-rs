@@ -2,7 +2,7 @@ use crate::asset::Asset;
 use crate::bundle::AssetBundle;
 use crate::classes::{ClassID, FromObject};
 use dashmap::DashMap;
-use image::DynamicImage;
+use image::RgbaImage;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::iter::zip;
@@ -14,7 +14,7 @@ use crate::object::ObjectInfo;
 pub struct Env {
     pub bundles: Vec<AssetBundle>,
     pub assets: Vec<Vec<Asset>>,
-    pub cache: Arc<DashMap<i64, DynamicImage>>,
+    pub cache: Arc<DashMap<i64, RgbaImage>>,
 }
 
 impl Env {
@@ -76,7 +76,7 @@ pub struct Object<'a> {
     pub bundle: &'a AssetBundle,
     pub asset: &'a Asset,
     pub info: ObjectInfo,
-    pub cache: Arc<DashMap<i64, DynamicImage>>,
+    pub cache: Arc<DashMap<i64, RgbaImage>>,
 }
 
 impl<'a> Object<'a> {

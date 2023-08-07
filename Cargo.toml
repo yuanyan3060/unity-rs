@@ -17,4 +17,5 @@ lz4_flex = "0.10.0"
 lzma-rs = "0.3.0"
 num_enum = "0.6.1"
 serde_json = "1.0.97"
+texture2ddecoder = {git = "https://github.com/yuanyan3060/texture2ddecoder"}
 thiserror = "1.0.40"

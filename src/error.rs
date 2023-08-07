@@ -11,8 +11,16 @@ pub enum UnityError {
     Lz4DecompressError(#[from] lz4_flex::block::DecompressError),
     #[error("LzmaError: {0}")]
     LzmaError(#[from] lzma_rs::error::Error),
+    #[error("CustomError: {0}")]
+    CustomError(String),
     #[error("Unimplemented")]
     Unimplemented,
 }
 
 pub type UnityResult<T> = Result<T, UnityError>;
+
+impl From<&'static str> for UnityError {
+    fn from(value: &'static str) -> Self {
+        Self::CustomError(value.to_string())
+    }
+}

@@ -8,7 +8,7 @@ use crate::math::{Matrix4x4, RectF32, Vector2, Vector3, Vector4};
 use crate::object::ObjectInfo;
 use crate::reader::{ByteOrder, Reader};
 use image::imageops::FilterType;
-use image::DynamicImage;
+use image::{DynamicImage, RgbaImage};
 use imageproc::point::Point;
 use std::borrow::Cow;
 
@@ -341,7 +341,7 @@ impl<'a> FromObject<'a> for Sprite<'a> {
 }
 
 impl<'a> Sprite<'a> {
-    pub fn decode_image(&self) -> UnityResult<DynamicImage> {
+    pub fn decode_image(&self) -> UnityResult<RgbaImage> {
         if let Some(sprite_atlas) = self.sprite_atlas.as_ref().and_then(|x| x.get_obj()) {
             if let Some(sprite_atlas_data) = sprite_atlas.read::<SpriteAtlas>()?.render_data_map.get(&self.render_data_key) {
                 if let Some(texture2d) = sprite_atlas_data.texture.get_obj() {
@@ -360,13 +360,13 @@ impl<'a> Sprite<'a> {
         }
         todo!()
     }
-    fn cut_image(&self, texture2d: &Texture2D, rect: RectF32, _offset: Vector2, downscale_multiplier: f32, setting: &SpriteSettings) -> UnityResult<DynamicImage> {
+    fn cut_image(&self, texture2d: &Texture2D, rect: RectF32, _offset: Vector2, downscale_multiplier: f32, setting: &SpriteSettings) -> UnityResult<RgbaImage> {
         let origin_image = texture2d.decode_image()?;
         let mut origin_image = Cow::Borrowed(&*origin_image);
         if downscale_multiplier > 0.0 && downscale_multiplier != 1.0 {
-            let w = (texture2d.width as f32) / downscale_multiplier;
-            let h = (texture2d.height as f32) / downscale_multiplier;
-            origin_image = Cow::Owned(origin_image.resize(w as u32, h as u32, FilterType::Nearest));
+            let w = ((texture2d.width as f32) / downscale_multiplier) as u32;
+            let h = ((texture2d.height as f32) / downscale_multiplier) as u32;
+            origin_image = Cow::Owned(image::imageops::resize(origin_image.as_ref(), w, h, FilterType::Nearest));
         }
         let rect_x = rect.x.floor() as u32;
         let rect_y = rect.y.floor() as u32;
@@ -374,7 +374,8 @@ impl<'a> Sprite<'a> {
         let rect_h = rect.h.floor() as u32;
         let rect_w = rect_w.min(origin_image.width());
         let rect_h = rect_h.min(origin_image.height());
-        let mut sprite_image = origin_image.as_ref().crop_imm(rect_x, origin_image.height() - rect_y - rect_h, rect_w, rect_h);
+        let sprite_image = image::imageops::crop_imm(origin_image.as_ref(), rect_x, origin_image.height() - rect_y - rect_h, rect_w, rect_h).to_image();
+        let mut sprite_image = DynamicImage::ImageRgba8(sprite_image);
         if setting.packed {
             match setting.packing_rotation {
                 SpritePackingRotation::None => (),
@@ -429,6 +430,6 @@ impl<'a> Sprite<'a> {
             });
             return Ok(img.into());
         }
-        return Ok(sprite_image);
+        return Ok(sprite_image.into_rgba8());
     }
 }

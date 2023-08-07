@@ -1,5 +1,4 @@
 mod animation_clip;
-mod decode;
 mod id;
 mod mesh;
 mod pptr;
