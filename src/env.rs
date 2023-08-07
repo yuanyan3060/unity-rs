@@ -5,15 +5,45 @@ use dashmap::DashMap;
 use image::RgbaImage;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::iter::zip;
 use std::sync::Arc;
-
 use crate::error::UnityResult;
 use crate::object::ObjectInfo;
 
+pub struct ObjectIter<'a> {
+    env: &'a Env,
+    bundle_index: usize,
+    asset_index: usize,
+    obj_index: usize,
+}
+
+impl<'a> Iterator for ObjectIter<'a> {
+    type Item = Object<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let bundle = self.env.bundles.get(self.bundle_index)?;
+        let Some(asset) = bundle.assets.get(self.asset_index) else {
+            self.asset_index = 0;
+            self.bundle_index += 1;
+            return self.next();
+        };
+        let Some(info) = asset.objects_info.get(self.obj_index) else{
+            self.obj_index = 0;
+            self.asset_index +=1;
+            return self.next();
+        };
+        self.obj_index += 1;
+        return Some(Object {
+            env: self.env,
+            bundle,
+            asset,
+            info: info.clone(),
+            cache: self.env.cache.clone(),
+        });
+    }
+}
+
 pub struct Env {
     pub bundles: Vec<AssetBundle>,
-    pub assets: Vec<Vec<Asset>>,
     pub cache: Arc<DashMap<i64, RgbaImage>>,
 }
 
@@ -21,50 +51,24 @@ impl Env {
     pub fn new() -> Self {
         Self {
             bundles: Vec::new(),
-            assets: Vec::new(),
             cache: Arc::new(DashMap::new()),
         }
     }
 
     pub fn load_from_slice(&mut self, src: &[u8]) -> UnityResult<()> {
         let bundle = AssetBundle::from_slice(src)?;
-        self.assets.push(bundle.get_assets()?);
         self.bundles.push(bundle);
         Ok(())
     }
 
-    pub fn objects(&self) -> Vec<Object> {
-        let mut result = Vec::new();
-        for (bundle, assets) in zip(&self.bundles, &self.assets) {
-            for asset in assets {
-                for info in &asset.objects_info {
-                    result.push(Object {
-                        env: self,
-                        bundle,
-                        asset,
-                        info: info.clone(),
-                        cache: self.cache.clone(),
-                    })
-                }
-            }
-        }
-        result
+    pub fn objects(&self) -> ObjectIter {
+        ObjectIter { env: self, bundle_index: 0, asset_index: 0, obj_index: 0 }
     }
 
     pub fn find_object(&self, path_id: i64) -> Option<Object> {
-        for (bundle, assets) in zip(&self.bundles, &self.assets) {
-            for asset in assets {
-                for info in &asset.objects_info {
-                    if info.path_id == path_id {
-                        return Some(Object {
-                            env: self,
-                            bundle,
-                            asset,
-                            info: info.clone(),
-                            cache: self.cache.clone(),
-                        });
-                    }
-                }
+        for i in self.objects(){
+            if i.info.path_id == path_id{
+                return Some(i);
             }
         }
         None

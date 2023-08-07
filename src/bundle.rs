@@ -104,6 +104,7 @@ pub struct AssetBundle {
     block_infos: Vec<StorageBlock>,
     pub nodes: Vec<Node>,
     pub files: Vec<Arc<Vec<u8>>>,
+    pub assets: Vec<Asset>,
 }
 
 impl AssetBundle {
@@ -113,7 +114,7 @@ impl AssetBundle {
         let version = r.read_u32()?;
         let unity_version = r.read_string_util_null()?;
         let unity_revision = r.read_string_util_null()?;
-        let mut ret = Self { header: BundleHead { signature, version, unity_version, unity_revision, size: 0, compressed_blocks_info_size: 0, uncompressed_blocks_info_size: 0, flags: 0 }, block_infos: Vec::new(), nodes: Vec::new(), files: Vec::new() };
+        let mut ret = Self { header: BundleHead { signature, version, unity_version, unity_revision, size: 0, compressed_blocks_info_size: 0, uncompressed_blocks_info_size: 0, flags: 0 }, block_infos: Vec::new(), nodes: Vec::new(), files: Vec::new(), assets: Vec::new() };
         match ret.header.signature.as_str() {
             "UnityWeb" | "UnityRaw" => unimplemented!("UnityWeb and UnityRaw are unimplemented yet"),
             "UnityFS" => {
@@ -126,6 +127,7 @@ impl AssetBundle {
                 unimplemented!("{}", ret.header.signature)
             }
         }
+        ret.assets = ret.load_assets()?;
         Ok(ret)
     }
 
@@ -283,7 +285,7 @@ impl AssetBundle {
         }
     }
 
-    pub fn get_assets(&self) -> UnityResult<Vec<Asset>> {
+    pub fn load_assets(&self) -> UnityResult<Vec<Asset>> {
         let mut ret = Vec::new();
         for file in &self.files {
             if FileType::AssetsFile != AssetBundle::check_file_type(file).unwrap() {

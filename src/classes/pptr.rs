@@ -2,7 +2,6 @@ use crate::classes::FromObject;
 use crate::env::{Env, Object};
 use crate::error::UnityResult;
 use crate::reader::Reader;
-use std::iter::zip;
 use std::{any::type_name, marker::PhantomData};
 
 pub struct PPtr<'a, T: FromObject<'a> + 'a> {
@@ -28,8 +27,8 @@ impl<'a, T: FromObject<'a>> PPtr<'a, T> {
         if self.path_id == 0 {
             return None;
         }
-        for (bundle, assets) in zip(&self.env.bundles, &self.env.assets) {
-            for asset in assets {
+        for bundle in &self.env.bundles {
+            for asset in &bundle.assets {
                 for info in &asset.objects_info {
                     if info.path_id == self.path_id {
                         let obj = Object {
