@@ -1,7 +1,6 @@
 use crate::pixel_info::Pixel;
-use crate::{ImageDecoder, ImageSize};
+use crate::ImageDecoder;
 use byteorder::{BigEndian, ReadBytesExt};
-use bytes::BufMut;
 
 pub struct RGB565;
 

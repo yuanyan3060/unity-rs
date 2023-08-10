@@ -1,7 +1,6 @@
 use crate::pixel_info::Pixel;
-use crate::{ImageDecoder, ImageSize};
+use crate::ImageDecoder;
 use byteorder::ReadBytesExt;
-use bytes::BufMut;
 
 pub struct ARGB32;
 

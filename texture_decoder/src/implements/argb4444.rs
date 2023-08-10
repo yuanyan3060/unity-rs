@@ -16,7 +16,7 @@ impl ImageDecoder for ARGB4444 {
         pixel_buff[3] = ((pixel_old & 0xf000) >> 12) as _;
 
         for pixel in pixel_buff.iter_mut() {
-            *pixel = ((*pixel << 4) | *pixel)
+            *pixel = (*pixel << 4) | *pixel
         }
         let [b, g, r, a] = pixel_buff;
         Ok(Pixel::new_rgba(r, g, b, a))

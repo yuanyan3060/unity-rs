@@ -1,8 +1,7 @@
 use crate::pixel_info::Pixel;
 use crate::utils::{FloatConvU8, ReadHalfFloat};
-use crate::{ImageDecoder, ImageSize};
+use crate::ImageDecoder;
 use byteorder::BigEndian;
-use bytes::BufMut;
 
 pub struct RGBAHalf;
 
