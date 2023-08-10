@@ -1,6 +1,7 @@
 pub mod error;
-pub mod implments;
+pub mod implements;
 mod utils;
+mod pixel_info;
 
 pub struct Texture2DDecoder;
 
@@ -9,13 +10,6 @@ impl Texture2DDecoder {
         let mut buffer = Vec::new();
         buffer.reserve(size.output_size());
         D::decoding(size, data, &mut buffer)?;
-        let mut chunks = buffer.chunks_exact_mut(4);
-        // bgra -> rgba
-        while let Some([b, _, r, _]) = chunks.next() {
-            let &mut t = r;
-            *r = *b;
-            *b = t;
-        }
 
         let img = <RgbaImage>::from_raw(size.width as _, size.height as _, buffer).ok_or(DecodeImageError::ImageDecode)?;
 
@@ -52,7 +46,17 @@ use std::io;
 
 use crate::error::DecodeImageError;
 use image::RgbaImage;
+use crate::pixel_info::Pixel;
+
 
 pub trait ImageDecoder {
-    fn decoding(size: &ImageSize, img_data: &[u8], buffer: &mut impl BufMut) -> io::Result<()>;
+    fn decoding(size: &ImageSize, mut img_data: &[u8], buffer: &mut impl BufMut) -> io::Result<()> {
+        let img = &mut img_data;
+        for _ in 0..size.size() {
+            Self::decode_step(img)?.write_but(buffer);
+        }
+        Ok(())
+    }
+
+    fn decode_step(data: &mut &[u8]) -> io::Result<Pixel>;
 }
