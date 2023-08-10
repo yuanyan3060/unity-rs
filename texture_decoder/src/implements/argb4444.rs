@@ -1,14 +1,12 @@
-use crate::{ImageDecoder, ImageSize};
-use byteorder::{BigEndian, ReadBytesExt};
-use bytes::BufMut;
-use std::io;
 use crate::pixel_info::Pixel;
+use crate::ImageDecoder;
+use byteorder::{BigEndian, ReadBytesExt};
+
+use std::io;
 
 pub struct ARGB4444;
 
 impl ImageDecoder for ARGB4444 {
-
-
     fn decode_step(data: &mut &[u8]) -> io::Result<Pixel> {
         let mut pixel_buff = [0u8; 4];
         let pixel_old = data.read_u16::<BigEndian>()?;
@@ -20,7 +18,7 @@ impl ImageDecoder for ARGB4444 {
         for pixel in pixel_buff.iter_mut() {
             *pixel = ((*pixel << 4) | *pixel)
         }
-        let [b,g,r,a] = pixel_buff;
+        let [b, g, r, a] = pixel_buff;
         Ok(Pixel::new_rgba(r, g, b, a))
     }
 }

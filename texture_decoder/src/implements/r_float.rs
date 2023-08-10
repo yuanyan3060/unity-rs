@@ -1,8 +1,8 @@
 use byteorder::{BigEndian, ReadBytesExt};
 
-use crate::{ImageDecoder};
 use crate::pixel_info::Pixel;
 use crate::utils::FloatConvU8;
+use crate::ImageDecoder;
 
 pub struct RFloat;
 

@@ -1,7 +1,6 @@
-use crate::{ImageDecoder, ImageSize};
-use byteorder::{BigEndian, ReadBytesExt};
-use bytes::BufMut;
 use crate::pixel_info::Pixel;
+use crate::ImageDecoder;
+use byteorder::{BigEndian, ReadBytesExt};
 
 pub struct RGBA4444;
 
@@ -17,7 +16,7 @@ impl ImageDecoder for RGBA4444 {
         for pixel in pixel_buff.iter_mut() {
             *pixel = ((*pixel << 4) | *pixel)
         }
-        let [b,g,r,a] = pixel_buff;
+        let [b, g, r, a] = pixel_buff;
 
         Ok(Pixel::new_rgba(r, g, b, a))
     }

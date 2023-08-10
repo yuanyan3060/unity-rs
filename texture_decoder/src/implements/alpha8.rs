@@ -1,8 +1,7 @@
-use crate::{ImageDecoder, ImageSize};
-use bytes::BufMut;
-use std::io;
-use byteorder::ReadBytesExt;
 use crate::pixel_info::Pixel;
+use crate::ImageDecoder;
+use byteorder::ReadBytesExt;
+use std::io;
 
 pub struct Alpha8;
 

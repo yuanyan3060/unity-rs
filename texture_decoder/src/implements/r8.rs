@@ -1,6 +1,6 @@
-use byteorder::ReadBytesExt;
-use crate::ImageDecoder;
 use crate::pixel_info::Pixel;
+use crate::ImageDecoder;
+use byteorder::ReadBytesExt;
 
 pub struct R8;
 
@@ -9,4 +9,3 @@ impl ImageDecoder for R8 {
         Ok(Pixel::builder().rad(data.read_u8()?).build())
     }
 }
-

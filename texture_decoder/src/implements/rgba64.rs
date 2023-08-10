@@ -1,7 +1,7 @@
-use byteorder::{BigEndian, ReadBytesExt};
-use crate::ImageDecoder;
 use crate::pixel_info::Pixel;
 use crate::utils::DownScaleToU8;
+use crate::ImageDecoder;
+use byteorder::{BigEndian, ReadBytesExt};
 
 pub struct RGBA64;
 

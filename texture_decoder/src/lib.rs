@@ -1,7 +1,7 @@
 pub mod error;
 pub mod implements;
-mod utils;
 mod pixel_info;
+mod utils;
 
 pub struct Texture2DDecoder;
 
@@ -45,9 +45,8 @@ use image::imageops::flip_vertical;
 use std::io;
 
 use crate::error::DecodeImageError;
-use image::RgbaImage;
 use crate::pixel_info::Pixel;
-
+use image::RgbaImage;
 
 pub trait ImageDecoder {
     fn decoding(size: &ImageSize, mut img_data: &[u8], buffer: &mut impl BufMut) -> io::Result<()> {

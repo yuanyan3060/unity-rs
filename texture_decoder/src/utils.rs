@@ -1,11 +1,10 @@
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+use half::f16;
 use std::io;
 use std::num::Wrapping;
-use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
-use half::f16;
 
-
-pub(crate) trait DownScaleToU8{
-    fn down_scale(self)->u8;
+pub(crate) trait DownScaleToU8 {
+    fn down_scale(self) -> u8;
 }
 
 impl DownScaleToU8 for u16 {
@@ -15,49 +14,46 @@ impl DownScaleToU8 for u16 {
     }
 }
 
-
-pub(crate) fn clamp_byte(x:u16)->u8{
-    if let Ok(v) = x.try_into(){
+pub(crate) fn clamp_byte(x: u16) -> u8 {
+    if let Ok(v) = x.try_into() {
         v
-    }else{
+    } else {
         u8::MAX
     }
 }
 
-pub(crate) trait ByteOrderExt{
-    fn read_f16(buf:[u8;2])->f16;
+pub(crate) trait ByteOrderExt {
+    fn read_f16(buf: [u8; 2]) -> f16;
 }
 
-impl ByteOrderExt  for BigEndian{
+impl ByteOrderExt for BigEndian {
     fn read_f16(buf: [u8; 2]) -> f16 {
         f16::from_be_bytes(buf)
     }
 }
-impl ByteOrderExt for LittleEndian{
+impl ByteOrderExt for LittleEndian {
     fn read_f16(buf: [u8; 2]) -> f16 {
         f16::from_le_bytes(buf)
     }
 }
 
-pub(crate) trait ReadHalfFloat:ReadBytesExt{
-    fn read_f16<T:ByteOrderExt>(&mut self)->io::Result<f16>{
-        let buf = [self.read_u8()?,self.read_u8()?];
+pub(crate) trait ReadHalfFloat: ReadBytesExt {
+    fn read_f16<T: ByteOrderExt>(&mut self) -> io::Result<f16> {
+        let buf = [self.read_u8()?, self.read_u8()?];
         Ok(T::read_f16(buf))
     }
 }
 
-impl<T> ReadHalfFloat for T where T: ReadBytesExt {
-
-}
+impl<T> ReadHalfFloat for T where T: ReadBytesExt {}
 
 pub(crate) trait FloatConvU8 {
-    fn to_u8(self)->u8;
+    fn to_u8(self) -> u8;
 }
 
-impl FloatConvU8 for f16{
+impl FloatConvU8 for f16 {
     fn to_u8(self) -> u8 {
         let full = self.to_f32();
-        (full*255f32).round() as _
+        (full * 255f32).round() as _
     }
 }
 
