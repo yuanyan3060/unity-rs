@@ -301,11 +301,7 @@ impl<'a> FromObject<'a> for Sprite<'a> {
             border = Some(r.read_vector4()?);
         }
         pixels_to_units = r.read_f32()?;
-        if version[0] > 5
-            || (version[0] == 5 && version[1] > 4)
-            || (version[0] == 5 && version[1] == 4 && version[2] >= 2)
-            || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type == "p" && version[3] >= 3)
-        {
+        if version[0] > 5 || (version[0] == 5 && version[1] > 4) || (version[0] == 5 && version[1] == 4 && version[2] >= 2) || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type == "p" && version[3] >= 3) {
             pivot = r.read_vector2()?;
         }
         extrude = r.read_u32()? as u8;
@@ -421,13 +417,7 @@ impl<'a> Sprite<'a> {
                 }
                 imageproc::drawing::draw_polygon_mut(&mut mask, &poly, image::Luma([255]))
             }
-            let img = imageproc::map::map_colors2(&sprite_image, &mask, |a, b| {
-                if b.0[0] != 0 {
-                    image::Rgba([a.0[0], a.0[1], a.0[2], a.0[3]])
-                } else {
-                    image::Rgba([0, 0, 0, 0])
-                }
-            });
+            let img = imageproc::map::map_colors2(&sprite_image, &mask, |a, b| if b.0[0] != 0 { image::Rgba([a.0[0], a.0[1], a.0[2], a.0[3]]) } else { image::Rgba([0, 0, 0, 0]) });
             return Ok(img.into());
         }
         return Ok(sprite_image.into_rgba8());

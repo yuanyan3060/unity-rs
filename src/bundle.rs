@@ -82,7 +82,16 @@ pub struct BundleHead {
 
 impl BundleHead {
     pub fn new() -> Self {
-        BundleHead { signature: String::new(), version: 0, unity_version: String::new(), unity_revision: String::new(), size: 0, compressed_blocks_info_size: 0, uncompressed_blocks_info_size: 0, flags: 0 }
+        BundleHead {
+            signature: String::new(),
+            version: 0,
+            unity_version: String::new(),
+            unity_revision: String::new(),
+            size: 0,
+            compressed_blocks_info_size: 0,
+            uncompressed_blocks_info_size: 0,
+            flags: 0,
+        }
     }
 }
 
@@ -114,7 +123,22 @@ impl AssetBundle {
         let version = r.read_u32()?;
         let unity_version = r.read_string_util_null()?;
         let unity_revision = r.read_string_util_null()?;
-        let mut ret = Self { header: BundleHead { signature, version, unity_version, unity_revision, size: 0, compressed_blocks_info_size: 0, uncompressed_blocks_info_size: 0, flags: 0 }, block_infos: Vec::new(), nodes: Vec::new(), files: Vec::new(), assets: Vec::new() };
+        let mut ret = Self {
+            header: BundleHead {
+                signature,
+                version,
+                unity_version,
+                unity_revision,
+                size: 0,
+                compressed_blocks_info_size: 0,
+                uncompressed_blocks_info_size: 0,
+                flags: 0,
+            },
+            block_infos: Vec::new(),
+            nodes: Vec::new(),
+            files: Vec::new(),
+            assets: Vec::new(),
+        };
         match ret.header.signature.as_str() {
             "UnityWeb" | "UnityRaw" => unimplemented!("UnityWeb and UnityRaw are unimplemented yet"),
             "UnityFS" => {
@@ -167,12 +191,21 @@ impl AssetBundle {
         let _uncompressed_data_hash = block_info_reader.read_u8_slice(16)?;
         let block_info_count = block_info_reader.read_i32()?;
         for _ in 0..block_info_count {
-            let s = StorageBlock { uncompressed_size: block_info_reader.read_u32()?, compressed_size: block_info_reader.read_u32()?, flags: block_info_reader.read_u16()? };
+            let s = StorageBlock {
+                uncompressed_size: block_info_reader.read_u32()?,
+                compressed_size: block_info_reader.read_u32()?,
+                flags: block_info_reader.read_u16()?,
+            };
             self.block_infos.push(s)
         }
         let node_count = block_info_reader.read_i32()?;
         for _ in 0..node_count {
-            let n = Node { offset: block_info_reader.read_i64()?, size: block_info_reader.read_i64()?, flags: block_info_reader.read_u32()?, path: block_info_reader.read_string_util_null()? };
+            let n = Node {
+                offset: block_info_reader.read_i64()?,
+                size: block_info_reader.read_i64()?,
+                flags: block_info_reader.read_u32()?,
+                path: block_info_reader.read_string_util_null()?,
+            };
             self.nodes.push(n)
         }
         if self.header.flags & ArchiveFlags::BlockInfoNeedPaddingAtStart as u32 != 0 {

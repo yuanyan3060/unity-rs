@@ -26,11 +26,7 @@ impl<'a> SpriteAtlasData<'a> {
         let alpha_texture = PPtr::load(object, r)?;
         let texture_rect = r.read_rect_f32()?;
         let texture_rect_offset = r.read_vector2()?;
-        let atlas_rect_offset = if version[0] > 2017 || (version[0] == 2017 && version[1] >= 2) {
-            r.read_vector2()?
-        } else {
-            Vector2::default()
-        };
+        let atlas_rect_offset = if version[0] > 2017 || (version[0] == 2017 && version[1] >= 2) { r.read_vector2()? } else { Vector2::default() };
         let uv_transform = r.read_vector4()?;
         let downscale_multiplier = r.read_f32()?;
         let settings_raw = SpriteSettings::load(&object.info, r)?;

@@ -265,7 +265,12 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_rect_f32(&mut self) -> UnityResult<RectF32> {
-        Ok(RectF32 { x: self.read_f32()?, y: self.read_f32()?, w: self.read_f32()?, h: self.read_f32()? })
+        Ok(RectF32 {
+            x: self.read_f32()?,
+            y: self.read_f32()?,
+            w: self.read_f32()?,
+            h: self.read_f32()?,
+        })
     }
 
     pub fn read_vector2(&mut self) -> UnityResult<Vector2> {
@@ -273,15 +278,41 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_vector3(&mut self) -> UnityResult<Vector3> {
-        Ok(Vector3 { x: self.read_f32()?, y: self.read_f32()?, z: self.read_f32()? })
+        Ok(Vector3 {
+            x: self.read_f32()?,
+            y: self.read_f32()?,
+            z: self.read_f32()?,
+        })
     }
 
     pub fn read_vector4(&mut self) -> UnityResult<Vector4> {
-        Ok(Vector4 { x: self.read_f32()?, y: self.read_f32()?, z: self.read_f32()?, w: self.read_f32()? })
+        Ok(Vector4 {
+            x: self.read_f32()?,
+            y: self.read_f32()?,
+            z: self.read_f32()?,
+            w: self.read_f32()?,
+        })
     }
 
     pub fn read_matrix4x4(&mut self) -> UnityResult<Matrix4x4> {
-        Ok(Matrix4x4 { m00: self.read_f32()?, m10: self.read_f32()?, m20: self.read_f32()?, m30: self.read_f32()?, m01: self.read_f32()?, m11: self.read_f32()?, m21: self.read_f32()?, m31: self.read_f32()?, m02: self.read_f32()?, m12: self.read_f32()?, m22: self.read_f32()?, m32: self.read_f32()?, m03: self.read_f32()?, m13: self.read_f32()?, m23: self.read_f32()?, m33: self.read_f32()? })
+        Ok(Matrix4x4 {
+            m00: self.read_f32()?,
+            m10: self.read_f32()?,
+            m20: self.read_f32()?,
+            m30: self.read_f32()?,
+            m01: self.read_f32()?,
+            m11: self.read_f32()?,
+            m21: self.read_f32()?,
+            m31: self.read_f32()?,
+            m02: self.read_f32()?,
+            m12: self.read_f32()?,
+            m22: self.read_f32()?,
+            m32: self.read_f32()?,
+            m03: self.read_f32()?,
+            m13: self.read_f32()?,
+            m23: self.read_f32()?,
+            m33: self.read_f32()?,
+        })
     }
 
     pub fn read_u16_list(&mut self, size: usize) -> UnityResult<Vec<u16>> {
