@@ -1,13 +1,13 @@
 use crate::asset::Asset;
 use crate::bundle::AssetBundle;
 use crate::classes::{ClassID, FromObject};
+use crate::error::UnityResult;
+use crate::object::ObjectInfo;
 use dashmap::DashMap;
 use image::RgbaImage;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::error::UnityResult;
-use crate::object::ObjectInfo;
 
 pub struct ObjectIter<'a> {
     env: &'a Env,
@@ -62,12 +62,17 @@ impl Env {
     }
 
     pub fn objects(&self) -> ObjectIter {
-        ObjectIter { env: self, bundle_index: 0, asset_index: 0, obj_index: 0 }
+        ObjectIter {
+            env: self,
+            bundle_index: 0,
+            asset_index: 0,
+            obj_index: 0,
+        }
     }
 
     pub fn find_object(&self, path_id: i64) -> Option<Object> {
-        for i in self.objects(){
-            if i.info.path_id == path_id{
+        for i in self.objects() {
+            if i.info.path_id == path_id {
                 return Some(i);
             }
         }

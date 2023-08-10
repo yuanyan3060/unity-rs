@@ -14,11 +14,7 @@ impl<'a> FromObject<'a> for TextAsset {
         let name = r.read_aligned_string()?;
         let length = r.read_i32()?;
         let script = r.read_u8_list(length as usize)?;
-        Ok(Self {
-            name,
-            script,
-            path_id: object.info.path_id,
-        })
+        Ok(Self { name, script, path_id: object.info.path_id })
     }
 }
 

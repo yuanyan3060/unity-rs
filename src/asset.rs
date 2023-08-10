@@ -1,9 +1,9 @@
-use std::sync::Arc;
 use crate::common::common_string;
 use crate::error::UnityResult;
 use crate::object::ObjectInfo;
 use crate::reader::{ByteOrder, Reader};
 use crate::typetree::{TypeTree, TypeTreeNode};
+use std::sync::Arc;
 
 #[derive(Default)]
 pub struct SerializedFileHeader {
@@ -42,7 +42,6 @@ pub struct FileIdentifier {
     pub path_name: String,
     //file_name: String,
 }
-
 
 pub struct Asset {
     //full_name: String,
@@ -255,9 +254,7 @@ impl Asset {
         if self.header.version >= 13 {
             if is_ref_type && result.script_type_index.is_some() {
                 result.script_id = r.read_u8_array()?;
-            } else if (self.header.version < 16 && result.class_id < 0)
-                || (self.header.version >= 16 && result.class_id == 114)
-            {
+            } else if (self.header.version < 16 && result.class_id < 0) || (self.header.version >= 16 && result.class_id == 114) {
                 result.script_id = r.read_u8_array()?;
             }
             result.old_type_hash = r.read_u8_array()?;

@@ -9,6 +9,9 @@ repository = "https://github.com/yuanyan3060/unity-rs"
 readme = "README.md"
 keywords = ["unity", "assetbundle", "unpack"]
 
+[workspace]
+members=["texture_decoder"]
+
 [dependencies]
 dashmap = "5.4.0"
 image = "0.24.6"
@@ -18,4 +21,5 @@ lzma-rs = "0.3.0"
 num_enum = "0.6.1"
 serde_json = "1.0.97"
 texture2ddecoder = {git = "https://github.com/yuanyan3060/texture2ddecoder"}
+texture_decoder = { version = "0.1.0", path = "texture_decoder" }
 thiserror = "1.0.40"

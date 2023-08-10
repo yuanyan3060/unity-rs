@@ -21,4 +21,3 @@ where
 {
     fn load(object: &'a Object<'a>) -> UnityResult<Self>;
 }
-
