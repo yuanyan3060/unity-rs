@@ -1,6 +1,6 @@
+use crate::{ImageDecoder, ImageSize};
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::BufMut;
-use crate::{ImageDecoder, ImageSize};
 
 pub struct RGB565;
 

@@ -1,6 +1,6 @@
+pub mod error;
 pub mod implments;
 mod utils;
-pub mod error;
 
 pub struct Texture2DDecoder;
 
@@ -34,16 +34,19 @@ impl ImageSize {
         Self { width, height }
     }
 
-    pub fn size(&self) -> usize { self.width * self.height }
-    pub fn output_size(&self) -> usize { self.size() * 4 }
+    pub fn size(&self) -> usize {
+        self.width * self.height
+    }
+    pub fn output_size(&self) -> usize {
+        self.size() * 4
+    }
 }
 
+use bytes::BufMut;
 use std::io;
-use bytes::{BufMut, BytesMut};
-use image::ColorType::Rgb32F;
-use image::ExtendedColorType::Bgra8;
-use image::{DynamicImage, ImageBuffer, Rgba, RgbaImage, RgbImage};
+
 use crate::error::DecodeImageError;
+use image::RgbaImage;
 
 pub trait ImageDecoder {
     fn decoding(size: &ImageSize, img_data: &[u8], buffer: &mut impl BufMut) -> io::Result<()>;

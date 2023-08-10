@@ -1,15 +1,15 @@
-use byteorder::ReadBytesExt;
-use bytes::{BufMut, BytesMut};
 use crate::{ImageDecoder, ImageSize};
+use byteorder::ReadBytesExt;
+use bytes::BufMut;
 
 pub struct RGB24;
 
 impl ImageDecoder for RGB24 {
-    fn decoding(size: &ImageSize,mut img_data: &[u8], buffer: &mut impl BufMut) -> std::io::Result<()> {
+    fn decoding(size: &ImageSize, mut img_data: &[u8], buffer: &mut impl BufMut) -> std::io::Result<()> {
         let size = size.size();
         let iter = &mut img_data;
-        for _ in 0..size{
-            let(r,g,b) = (iter.read_u8()?,iter.read_u8()?,iter.read_u8()?);
+        for _ in 0..size {
+            let (r, g, b) = (iter.read_u8()?, iter.read_u8()?, iter.read_u8()?);
 
             buffer.put_u8(b);
             buffer.put_u8(g);

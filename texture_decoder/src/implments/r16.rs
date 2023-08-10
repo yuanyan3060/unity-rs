@@ -1,7 +1,7 @@
+use crate::utils::down_scale_u16_to_u8;
+use crate::{ImageDecoder, ImageSize};
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::BufMut;
-use crate::{ImageDecoder, ImageSize};
-use crate::utils::down_scale_u16_to_u8;
 
 pub struct R16;
 
