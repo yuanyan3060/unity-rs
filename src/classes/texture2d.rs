@@ -9,6 +9,8 @@ use dashmap::DashMap;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use num_enum::FromPrimitive;
 use std::sync::Arc;
+use texture_decoder::{ImageSize, Texture2DDecoder};
+use texture_decoder::implments::{Alpha8, ARGB32, ARGB4444, BGRA32, R16, RGB24, RGB565, RGBA32, RGBA4444};
 
 #[allow(non_camel_case_types, non_upper_case_globals)]
 #[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy)]
@@ -258,11 +260,12 @@ impl Texture2D {
         let width = self.width;
         let height = self.height;
         let format = self.format;
+        let size = ImageSize::new(width as usize,height as usize);
         let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);
         let image = result.as_mut_ptr();
         let image = image.cast::<u32>();
         let image = unsafe { std::slice::from_raw_parts_mut(image, (width * height) as usize) };
-        return match format {
+        match format {
             TextureFormat::ETC2_RGBA8 => {
                 texture2ddecoder::decode_etc2_rgba8(&self.data, width as usize, height as usize, image)?;
                 Ok(result)
@@ -306,8 +309,38 @@ impl Texture2D {
             TextureFormat::ASTC_RGBA_12x12 => {
                 texture2ddecoder::decode_astc_12_12(&self.data, width as usize, height as usize, image)?;
                 Ok(result)
+            },
+            TextureFormat::ARGB32=>{
+                let img = Texture2DDecoder::texture_decode_image::<ARGB32>(&size,&self.data)?;
+                Ok(img)
+            }
+            TextureFormat::Alpha8=>{
+                let img = Texture2DDecoder::texture_decode_image::<Alpha8>(&size,&self.data)?;
+                Ok(img)
+            }
+            TextureFormat::ARGB4444=>{
+                let img = Texture2DDecoder::texture_decode_image::<ARGB4444>(&size,&self.data)?;
+                Ok(img)
+            }TextureFormat::RGB24=>{
+                let img = Texture2DDecoder::texture_decode_image::<RGB24>(&size,&self.data)?;
+                Ok(img)
+            }TextureFormat::RGBA32=>{
+                let img = Texture2DDecoder::texture_decode_image::<RGBA32>(&size,&self.data)?;
+                Ok(img)
+            }TextureFormat::R16=>{
+                let img = Texture2DDecoder::texture_decode_image::<R16>(&size,&self.data)?;
+                Ok(img)
+            }TextureFormat::RGB565=>{
+                let img = Texture2DDecoder::texture_decode_image::<RGB565>(&size,&self.data)?;
+                Ok(img)
+            }TextureFormat::RGBA4444=>{
+                let img = Texture2DDecoder::texture_decode_image::<RGBA4444>(&size,&self.data)?;
+                Ok(img)
+            }TextureFormat::BGRA32=>{
+                let img = Texture2DDecoder::texture_decode_image::<BGRA32>(&size,&self.data)?;
+                Ok(img)
             }
             _ => Err(UnityError::Unimplemented),
-        };
+        }
     }
 }

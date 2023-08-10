@@ -13,6 +13,9 @@ pub enum UnityError {
     LzmaError(#[from] lzma_rs::error::Error),
     #[error("CustomError: {0}")]
     CustomError(String),
+    #[error("DecodeImageError: {0}")]
+    DecodeImage(#[from]texture_decoder::error::DecodeImageError),
+
     #[error("Unimplemented")]
     Unimplemented,
 }
