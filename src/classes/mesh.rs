@@ -208,7 +208,7 @@ impl VertexData {
                         chn_mask |= 1u8 << chn;
                         stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
                     }
-                }
+                
             }
             self.streams.push(StreamInfo {
                 channel_mask: chn_mask,
