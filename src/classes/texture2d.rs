@@ -13,11 +13,11 @@ use texture_decoder::implements::{Alpha8, RFloat, RGB9e5Float, RGBAFloat, RGBAHa
 use texture_decoder::{ImageSize, Texture2DDecoder};
 
 #[allow(non_camel_case_types, non_upper_case_globals)]
-#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy,Default)]
 #[repr(i32)]
 #[non_exhaustive]
 pub enum TextureFormat {
-    #[num_enum(default)]
+    #[default]
     UnknownType = -1,
     Alpha8 = 1,
     ARGB4444,
@@ -84,11 +84,6 @@ pub enum TextureFormat {
     ASTC_HDR_12x12,
 }
 
-impl Default for TextureFormat {
-    fn default() -> Self {
-        Self::UnknownType
-    }
-}
 #[derive(Default)]
 pub struct GLTextureSettings {
     filter_mode: i32,

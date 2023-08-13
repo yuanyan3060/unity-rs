@@ -5,21 +5,16 @@ use crate::object::ObjectInfo;
 use crate::reader::Reader;
 use num_enum::TryFromPrimitive;
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy, Default)]
 #[repr(i32)]
 pub enum GfxPrimitiveType {
+    #[default]
     Triangles = 0,
     TriangleStrip = 1,
     Quads = 2,
     Lines = 3,
     LineStrip = 4,
     Points = 5,
-}
-
-impl Default for GfxPrimitiveType {
-    fn default() -> Self {
-        Self::Triangles
-    }
 }
 
 #[derive(Default, Debug)]
@@ -231,7 +226,7 @@ impl VertexData {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum VertexFormat {
     Float,
@@ -247,7 +242,7 @@ pub enum VertexFormat {
     UInt32,
     SInt32,
 }
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum VertexChannelFormat {
     Float,
@@ -257,7 +252,7 @@ pub enum VertexChannelFormat {
     UInt32,
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum VertexFormat2017 {
     Float,
@@ -309,20 +304,11 @@ impl VertexFormat {
 
     fn get_format_size(&self) -> u8 {
         match *self {
-            VertexFormat::Float => 4,
-            VertexFormat::UInt32 => 4,
-            VertexFormat::SInt32 => 4,
+            VertexFormat::Float | VertexFormat::UInt32 | VertexFormat::SInt32 => 4,
 
-            VertexFormat::Float16 => 2,
-            VertexFormat::UNorm16 => 2,
-            VertexFormat::SNorm16 => 2,
-            VertexFormat::UInt16 => 2,
-            VertexFormat::SInt16 => 2,
+            VertexFormat::Float16 | VertexFormat::UNorm16 | VertexFormat::SNorm16 | VertexFormat::UInt16 | VertexFormat::SInt16 => 2,
 
-            VertexFormat::UNorm8 => 1,
-            VertexFormat::SNorm8 => 1,
-            VertexFormat::UInt8 => 1,
-            VertexFormat::SInt8 => 1,
+            VertexFormat::UNorm8 | VertexFormat::SNorm8 | VertexFormat::UInt8 | VertexFormat::SInt8 => 1,
         }
     }
 }
