@@ -94,10 +94,12 @@ pub struct GLTextureSettings {
 
 impl GLTextureSettings {
     pub fn load(object_info: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
-        let mut result = Self::default();
-        result.filter_mode = r.read_i32()?;
-        result.aniso = r.read_i32()?;
-        result.mip_bias = r.read_f32()?;
+        let mut result = Self {
+            filter_mode: r.read_i32()?,
+            aniso: r.read_i32()?,
+            mip_bias: r.read_f32()?,
+            ..Self::default()
+        };
         if object_info.version[0] >= 2017 {
             result.wrap_mode = r.read_i32()?;
             let _wrap_w = r.read_i32()?;
@@ -157,10 +159,13 @@ pub struct Texture2D {
 impl<'a> FromObject<'a> for Texture2D {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
-        let mut result = Self::default();
-        result.cache = object.cache.clone();
-        result.path_id = object.info.path_id;
-        result.name = r.read_aligned_string()?;
+        let mut result = Self {
+            cache: object.cache.clone(),
+            path_id: object.info.path_id,
+            name: r.read_aligned_string()?,
+
+            ..Self::default()
+        };
         let version = &object.info.version;
         if version[0] > 2017 || (version[0] == 2017 && version[1] >= 3) {
             result.forced_fallback_format = r.read_i32()?;
@@ -178,9 +183,7 @@ impl<'a> FromObject<'a> for Texture2D {
         }
         result.format = TextureFormat::from(r.read_i32()?);
         let mut _mip_map = false;
-        if object.info.version[0] < 5 {
-            _mip_map = r.read_bool()?;
-        } else if object.info.version[0] == 5 && object.info.version[1] < 2 {
+        if object.info.version[0] < 5 || (object.info.version[0] == 5 && object.info.version[1] < 2) {
             _mip_map = r.read_bool()?;
         } else {
             result.mip_count = r.read_i32()?;
@@ -194,10 +197,8 @@ impl<'a> FromObject<'a> for Texture2D {
         if version[0] > 2019 || (version[0] == 2019 && version[1] >= 3) {
             let _is_ignore_master_texture_limit = r.read_bool()?;
         }
-        if version[0] >= 3 {
-            if version[0] < 5 || (version[0] == 5 && version[1] <= 4) {
-                let _read_allowed = r.read_bool()?;
-            }
+        if version[0] >= 3 && (version[0] < 5 || (version[0] == 5 && version[1] <= 4)) {
+            let _read_allowed = r.read_bool()?;
         }
         if version[0] > 2018 || (version[0] == 2018 && version[1] >= 2) {
             let _streaming_mip_maps = r.read_bool()?;
@@ -227,7 +228,7 @@ impl<'a> FromObject<'a> for Texture2D {
         if result.stream_info.path.is_empty() {
             result.data = r.read_u8_list(result.size as usize)?;
         } else {
-            let path = result.stream_info.path.split("/").last().ok_or(UnityError::InvalidValue)?;
+            let path = result.stream_info.path.split('/').last().ok_or(UnityError::InvalidValue)?;
             for i in 0..object.bundle.nodes.len() {
                 let node = &object.bundle.nodes[i];
                 if node.path != path {

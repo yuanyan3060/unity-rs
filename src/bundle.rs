@@ -80,6 +80,12 @@ pub struct BundleHead {
     pub flags: u32,
 }
 
+impl Default for BundleHead {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BundleHead {
     pub fn new() -> Self {
         BundleHead {
@@ -146,7 +152,9 @@ impl AssetBundle {
                 let blocks_data = ret.read_blocks(&mut r)?;
                 ret.read_files(&blocks_data)?;
             }
-            "UnityWeb" | "UnityRaw" | _ => return Err(UnityError::UnsupportFileType(ret.header.signature)),
+            "UnityWeb" | "UnityRaw" => return Err(UnityError::UnsupportFileType("UnityWeb or UnityRaw".into())),
+
+            _ => return Err(UnityError::UnsupportFileType(ret.header.signature)),
         }
         ret.assets = ret.load_assets()?;
         Ok(ret)
@@ -217,7 +225,7 @@ impl AssetBundle {
             let compress_type = CompressionType::from_magic_num((block_info.flags & StorageBlockFlags::CompressionTypeMask as u16) as u32)?;
             match compress_type {
                 CompressionType::None => {
-                    result.extend_from_slice(&r.read_u8_slice(block_info.compressed_size as usize)?);
+                    result.extend_from_slice(r.read_u8_slice(block_info.compressed_size as usize)?);
                 }
                 CompressionType::Lzma => {
                     let in_buf = r.read_u8_slice(block_info.compressed_size as usize)?;
@@ -233,7 +241,7 @@ impl AssetBundle {
                     let compressed_size = block_info.compressed_size;
                     let compressed_bytes = r.read_u8_slice(compressed_size as usize)?;
                     let uncompressed_size = block_info.uncompressed_size;
-                    let uncompressed_bytes = lz4_flex::decompress(&compressed_bytes, uncompressed_size as usize)?;
+                    let uncompressed_bytes = lz4_flex::decompress(compressed_bytes, uncompressed_size as usize)?;
                     result.extend_from_slice(&uncompressed_bytes);
                 }
             }

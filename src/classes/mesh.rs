@@ -1,5 +1,5 @@
 #![allow(non_upper_case_globals)]
-use super::animation_clip::AABB;
+use super::animation_clip::AnimationClip;
 use crate::error::{UnityError, UnityResult};
 use crate::object::ObjectInfo;
 use crate::reader::Reader;
@@ -26,7 +26,7 @@ pub struct SubMesh {
     pub base_vertex: u32,
     pub first_vertex: u32,
     pub vertex_count: u32,
-    pub local_aabb: Option<AABB>,
+    pub local_aabb: Option<AnimationClip>,
 }
 
 impl SubMesh {
@@ -47,7 +47,7 @@ impl SubMesh {
         if version[0] >= 3 {
             result.first_vertex = r.read_u32()?;
             result.vertex_count = r.read_u32()?;
-            result.local_aabb = Some(AABB::load(r)?);
+            result.local_aabb = Some(AnimationClip::load(r)?);
         }
         Ok(result)
     }
@@ -63,12 +63,12 @@ pub struct ChannelInfo {
 
 impl ChannelInfo {
     pub(super) fn load(_object: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
-        let mut result = Self::default();
-        result.stream = r.read_u8()?;
-        result.offset = r.read_u8()?;
-        result.format = r.read_u8()?;
-        result.dimension = r.read_u8()? & 0xF;
-        Ok(result)
+        Ok(Self {
+            stream: r.read_u8()?,
+            offset: r.read_u8()?,
+            format: r.read_u8()?,
+            dimension: r.read_u8()? & 0xF,
+        })
     }
 }
 
@@ -85,9 +85,12 @@ pub struct StreamInfo {
 impl StreamInfo {
     pub(super) fn load(object: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
         let version = object.version;
-        let mut result = Self::default();
-        result.channel_mask = r.read_u8()?;
-        result.offset = r.read_u8()?;
+        let mut result = Self {
+            channel_mask: r.read_u8()?,
+            offset: r.read_u8()?,
+            ..Self::default()
+        };
+
         if version[0] < 4 {
             result.stride = r.read_u32()? as u8;
             result.align = r.read_u32()? as u8;
@@ -204,11 +207,10 @@ impl VertexData {
             let mut stride = 0;
             for chn in 0..self.channels.len() {
                 let channel = &self.channels[chn];
-                if channel.stream == s &&channel.dimension > 0 {
-                        chn_mask |= 1u8 << chn;
-                        stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
-                    }
-                
+                if channel.stream == s && channel.dimension > 0 {
+                    chn_mask |= 1u8 << chn;
+                    stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
+                }
             }
             self.streams.push(StreamInfo {
                 channel_mask: chn_mask,
@@ -219,7 +221,7 @@ impl VertexData {
                 divider_op: 0,
             });
             offset += std::num::Wrapping(self.vertex_count) * std::num::Wrapping(stride);
-            offset = offset + std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
+            offset += std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
         }
         Ok(())
     }
@@ -298,7 +300,7 @@ impl VertexFormat {
             };
             return Ok(result);
         }
-        Ok(VertexFormat::try_from(format).or(Err(UnityError::InvalidValue))?)
+        VertexFormat::try_from(format).or(Err(UnityError::InvalidValue))
     }
 
     fn get_format_size(&self) -> u8 {
