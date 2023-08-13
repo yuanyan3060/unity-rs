@@ -204,8 +204,7 @@ impl VertexData {
             let mut stride = 0;
             for chn in 0..self.channels.len() {
                 let channel = &self.channels[chn];
-                if channel.stream == s {
-                    if channel.dimension > 0 {
+                if channel.stream == s &&channel.dimension > 0 {
                         chn_mask |= 1u8 << chn;
                         stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
                     }

@@ -13,7 +13,7 @@ use texture_decoder::implements::{Alpha8, RFloat, RGB9e5Float, RGBAFloat, RGBAHa
 use texture_decoder::{ImageSize, Texture2DDecoder};
 
 #[allow(non_camel_case_types, non_upper_case_globals)]
-#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy,Default)]
+#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy, Default)]
 #[repr(i32)]
 #[non_exhaustive]
 pub enum TextureFormat {

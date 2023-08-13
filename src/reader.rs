@@ -14,7 +14,6 @@ pub struct Reader<'a> {
     order: ByteOrder,
 }
 
-
 impl<'a> Reader<'a> {
     pub fn new(buf: &'a [u8], order: ByteOrder) -> Self {
         Self { buf, offset: 0, order }

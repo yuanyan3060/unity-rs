@@ -117,7 +117,7 @@ impl Asset {
                     s.push(i)
                 }
             }
-            let s = s.split(".");
+            let s = s.split('.');
             for (i, j) in s.into_iter().enumerate() {
                 if i >= 4 {
                     break;
