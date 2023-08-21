@@ -8,4 +8,6 @@ pub enum DecodeImageError {
     Io(#[from] io::Error),
     #[error("cannot decode Image")]
     ImageDecode,
+    #[error("expect {0} times pixel decode, but need {1} times")]
+    SizeNotMatch(usize, usize),
 }

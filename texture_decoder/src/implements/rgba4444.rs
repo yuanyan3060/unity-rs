@@ -1,11 +1,13 @@
-use crate::pixel_info::Pixel;
+use crate::pixel_info::{Pixel, SinglePixel};
 use crate::ImageDecoder;
 use byteorder::{BigEndian, ReadBytesExt};
 
 pub struct RGBA4444;
 
 impl ImageDecoder for RGBA4444 {
-    fn decode_step(data: &mut &[u8]) -> std::io::Result<Pixel> {
+    const DECODE_PIXEL_BYTE: usize = 2;
+
+    fn decode_pixel(data: &mut &[u8]) -> std::io::Result<SinglePixel> {
         let mut pixel_buff = [0u8; 4];
         let pixel_old = data.read_u16::<BigEndian>()?;
         pixel_buff[0] = ((pixel_old & 0x00f0) >> 4) as _;
@@ -18,6 +20,6 @@ impl ImageDecoder for RGBA4444 {
         }
         let [b, g, r, a] = pixel_buff;
 
-        Ok(Pixel::new_rgba(r, g, b, a))
+        Ok(Pixel::new_rgba(r, g, b, a).into())
     }
 }
