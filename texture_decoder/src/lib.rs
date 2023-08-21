@@ -11,7 +11,7 @@ impl Texture2DDecoder {
     pub fn decode<const N: usize, D: ImageDecoder<N>>(_: D, size: &ImageSize, data: &[u8], flip: bool) -> Result<RgbaImage, DecodeImageError> {
         let mut buffer = Vec::new();
         buffer.reserve(size.output_size());
-        D::decoding(size, data, &mut buffer)?;
+        D::decode_currently(size, data, &mut buffer)?;
 
         let img = <RgbaImage>::from_raw(size.width as _, size.height as _, buffer).ok_or(DecodeImageError::ImageDecode)?;
 
