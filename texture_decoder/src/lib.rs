@@ -9,11 +9,9 @@ pub struct Texture2DDecoder;
 
 impl Texture2DDecoder {
     pub fn decode<const N: usize, D: ImageDecoder<N>>(_: D, size: &ImageSize, data: &[u8], flip: bool) -> Result<RgbaImage, DecodeImageError> {
-        let mut buffer = Vec::new();
-        buffer.reserve(size.output_size());
-        D::decode_currently(size, data, &mut buffer)?;
+       let buffer =  D::decode_currently(size, data)?.to_vec();
 
-        let img = <RgbaImage>::from_raw(size.width as _, size.height as _, buffer).ok_or(DecodeImageError::ImageDecode)?;
+        let img = RgbaImage::from_raw(size.width as _, size.height as _, buffer).ok_or(DecodeImageError::ImageDecode)?;
 
         if flip {
             Ok(flip_vertical(&img))
@@ -38,7 +36,7 @@ impl ImageSize {
         self.width * self.height
     }
     pub fn output_size(&self) -> usize {
-        self.size() * 4
+        self.size() * Pixel::PIXEL_SPACE
     }
 }
 
@@ -46,3 +44,4 @@ use crate::error::DecodeImageError;
 pub use decoder::ImageDecoder;
 use image::imageops::flip_vertical;
 use image::RgbaImage;
+use crate::pixel_info::Pixel;

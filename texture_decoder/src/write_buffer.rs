@@ -16,6 +16,10 @@ impl WriteBuff {
     pub(crate) fn as_slice(&self) -> &[u8] {
         &self.buffer
     }
+
+    pub(crate) fn inner(self)->Box<[u8]>{
+        self.buffer
+    }
 }
 
 impl WriteBuff {
