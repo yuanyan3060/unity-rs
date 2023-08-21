@@ -7,6 +7,7 @@ use dashmap::DashMap;
 use image::RgbaImage;
 use serde_json::Value;
 use std::collections::HashMap;
+
 use std::sync::Arc;
 
 pub struct ObjectIter<'a> {
@@ -47,6 +48,12 @@ pub struct Env {
     pub cache: Arc<DashMap<i64, RgbaImage>>,
 }
 
+impl Default for Env {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Env {
     pub fn new() -> Self {
         Self {
@@ -71,12 +78,7 @@ impl Env {
     }
 
     pub fn find_object(&self, path_id: i64) -> Option<Object> {
-        for i in self.objects() {
-            if i.info.path_id == path_id {
-                return Some(i);
-            }
-        }
-        None
+        self.objects().find(|i| i.info.path_id == path_id)
     }
 }
 

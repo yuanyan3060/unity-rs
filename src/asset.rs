@@ -203,8 +203,10 @@ impl Asset {
         if ret.header.version >= 11 {
             let script_count = r.read_i32()?;
             for _ in 0..script_count {
-                let mut script_type = LocalSerializedObjectIdentifier::default();
-                script_type.local_serialized_file_index = r.read_i32()?;
+                let mut script_type = LocalSerializedObjectIdentifier {
+                    local_serialized_file_index: r.read_i32()?,
+                    ..LocalSerializedObjectIdentifier::default()
+                };
                 if ret.header.version < 14 {
                     script_type.local_identifier_in_file = r.read_i32()? as i64;
                 } else {
@@ -241,8 +243,10 @@ impl Asset {
     }
 
     pub fn read_serialized_type(&mut self, r: &mut Reader, is_ref_type: bool) -> UnityResult<SerializedType> {
-        let mut result = SerializedType::default();
-        result.class_id = r.read_i32()?;
+        let mut result = SerializedType {
+            class_id: r.read_i32()?,
+            ..SerializedType::default()
+        };
         if self.header.version >= 16 {
             result.is_stripped_type = r.read_bool()?;
         }
@@ -252,9 +256,7 @@ impl Asset {
         }
 
         if self.header.version >= 13 {
-            if is_ref_type && result.script_type_index.is_some() {
-                result.script_id = r.read_u8_array()?;
-            } else if (self.header.version < 16 && result.class_id < 0) || (self.header.version >= 16 && result.class_id == 114) {
+            if (is_ref_type && result.script_type_index.is_some()) || (self.header.version < 16 && result.class_id < 0) || (self.header.version >= 16 && result.class_id == 114) {
                 result.script_id = r.read_u8_array()?;
             }
             result.old_type_hash = r.read_u8_array()?;
@@ -296,15 +298,17 @@ impl Asset {
         let node_number = r.read_i32()?;
         let string_buffer_size = r.read_i32()? as usize;
         for _ in 0..node_number {
-            let mut type_tree_node = TypeTreeNode::default();
-            type_tree_node.version = r.read_u16()? as i32;
-            type_tree_node.level = r.read_u8()? as i32;
-            type_tree_node.type_flag = r.read_u8()? as i32;
-            type_tree_node.type_str_offset = r.read_u32()? as usize;
-            type_tree_node.name_str_offset = r.read_u32()? as usize;
-            type_tree_node.size = r.read_i32()?;
-            type_tree_node.index = r.read_i32()?;
-            type_tree_node.meta_flag = r.read_i32()?;
+            let mut type_tree_node = TypeTreeNode {
+                version: r.read_u16()? as i32,
+                level: r.read_u8()? as i32,
+                type_flag: r.read_u8()? as i32,
+                type_str_offset: r.read_u32()? as usize,
+                name_str_offset: r.read_u32()? as usize,
+                size: r.read_i32()?,
+                index: r.read_i32()?,
+                meta_flag: r.read_i32()?,
+                ..TypeTreeNode::default()
+            };
             if self.header.version >= 19 {
                 type_tree_node.ref_type_hash = r.read_u64()?;
             }
@@ -320,11 +324,13 @@ impl Asset {
     }
 
     pub fn read_type_tree(&mut self, r: &mut Reader, type_tree: &mut TypeTree, level: i32) -> UnityResult<()> {
-        let mut type_tree_node = TypeTreeNode::default();
-        type_tree_node.level = level;
-        type_tree_node.type_ = r.read_string_util_null()?;
-        type_tree_node.name = r.read_string_util_null()?;
-        type_tree_node.size = r.read_i32()?;
+        let mut type_tree_node = TypeTreeNode {
+            level,
+            type_: r.read_string_util_null()?,
+            name: r.read_string_util_null()?,
+            size: r.read_i32()?,
+            ..TypeTreeNode::default()
+        };
         if self.header.version == 2 {
             let _variable_count = r.read_i32()?;
         }

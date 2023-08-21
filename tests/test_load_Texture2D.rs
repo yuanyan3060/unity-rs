@@ -2,7 +2,7 @@ use unity_rs::classes::Texture2D;
 use unity_rs::Env;
 
 #[test]
-fn test_load_texture2D() {
+fn test_load_texture2d() {
     std::fs::create_dir_all("./target/tests").expect("CreateError");
     let bundle = include_bytes!("../examples/unpack_image/char_1016_agoat2.ab");
     let mut env = Env::new();

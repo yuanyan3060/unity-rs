@@ -13,11 +13,11 @@ use texture_decoder::implements::{Alpha8, RFloat, RGB9e5Float, RGBAFloat, RGBAHa
 use texture_decoder::{ImageSize, Texture2DDecoder};
 
 #[allow(non_camel_case_types, non_upper_case_globals)]
-#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy, Default)]
 #[repr(i32)]
 #[non_exhaustive]
 pub enum TextureFormat {
-    #[num_enum(default)]
+    #[default]
     UnknownType = -1,
     Alpha8 = 1,
     ARGB4444,
@@ -84,11 +84,6 @@ pub enum TextureFormat {
     ASTC_HDR_12x12,
 }
 
-impl Default for TextureFormat {
-    fn default() -> Self {
-        Self::UnknownType
-    }
-}
 #[derive(Default)]
 pub struct GLTextureSettings {
     filter_mode: i32,
@@ -99,10 +94,12 @@ pub struct GLTextureSettings {
 
 impl GLTextureSettings {
     pub fn load(object_info: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
-        let mut result = Self::default();
-        result.filter_mode = r.read_i32()?;
-        result.aniso = r.read_i32()?;
-        result.mip_bias = r.read_f32()?;
+        let mut result = Self {
+            filter_mode: r.read_i32()?,
+            aniso: r.read_i32()?,
+            mip_bias: r.read_f32()?,
+            ..Self::default()
+        };
         if object_info.version[0] >= 2017 {
             result.wrap_mode = r.read_i32()?;
             let _wrap_w = r.read_i32()?;
@@ -162,10 +159,13 @@ pub struct Texture2D {
 impl<'a> FromObject<'a> for Texture2D {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
-        let mut result = Self::default();
-        result.cache = object.cache.clone();
-        result.path_id = object.info.path_id;
-        result.name = r.read_aligned_string()?;
+        let mut result = Self {
+            cache: object.cache.clone(),
+            path_id: object.info.path_id,
+            name: r.read_aligned_string()?,
+
+            ..Self::default()
+        };
         let version = &object.info.version;
         if version[0] > 2017 || (version[0] == 2017 && version[1] >= 3) {
             result.forced_fallback_format = r.read_i32()?;
@@ -183,9 +183,7 @@ impl<'a> FromObject<'a> for Texture2D {
         }
         result.format = TextureFormat::from(r.read_i32()?);
         let mut _mip_map = false;
-        if object.info.version[0] < 5 {
-            _mip_map = r.read_bool()?;
-        } else if object.info.version[0] == 5 && object.info.version[1] < 2 {
+        if object.info.version[0] < 5 || (object.info.version[0] == 5 && object.info.version[1] < 2) {
             _mip_map = r.read_bool()?;
         } else {
             result.mip_count = r.read_i32()?;

@@ -31,7 +31,7 @@ impl Pixel {
         Self::new_rgba(rad, green, blue, 255)
     }
 
-    pub(crate) fn to_slice(&self) -> [u8; 4] {
+    pub(crate) fn as_array(&self) -> [u8; 4] {
         [self.rad, self.green, self.blue, self.alpha]
     }
 }

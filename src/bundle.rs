@@ -80,6 +80,12 @@ pub struct BundleHead {
     pub flags: u32,
 }
 
+impl Default for BundleHead {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BundleHead {
     pub fn new() -> Self {
         BundleHead {
@@ -140,16 +146,15 @@ impl AssetBundle {
             assets: Vec::new(),
         };
         match ret.header.signature.as_str() {
-            "UnityWeb" | "UnityRaw" => unimplemented!("UnityWeb and UnityRaw are unimplemented yet"),
             "UnityFS" => {
                 ret.read_header(&mut r)?;
                 ret.read_blocks_info_and_directory(&mut r)?;
                 let blocks_data = ret.read_blocks(&mut r)?;
                 ret.read_files(&blocks_data)?;
             }
-            _ => {
-                unimplemented!("{}", ret.header.signature)
-            }
+            "UnityWeb" | "UnityRaw" => return Err(UnityError::UnsupportFileType("UnityWeb or UnityRaw".into())),
+
+            _ => return Err(UnityError::UnsupportFileType(ret.header.signature)),
         }
         ret.assets = ret.load_assets()?;
         Ok(ret)

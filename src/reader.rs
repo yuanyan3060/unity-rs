@@ -44,6 +44,10 @@ impl<'a> Reader<'a> {
         self.buf.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn get_order(&self) -> ByteOrder {
         self.order
     }
@@ -90,8 +94,8 @@ impl<'a> Reader<'a> {
     pub fn read_f32_array<const N: usize>(&mut self) -> UnityResult<[f32; N]> {
         let mut result = [0.0; N];
         let end = self.has_space(N * std::mem::size_of::<f32>())?;
-        for i in 0..N {
-            result[i] = self.read_f32()?;
+        for item in result.iter_mut() {
+            *item = self.read_f32()?;
         }
         self.offset = end;
         Ok(result)
@@ -100,8 +104,8 @@ impl<'a> Reader<'a> {
     pub fn read_i32_array<const N: usize>(&mut self) -> UnityResult<[i32; N]> {
         let mut result = [0; N];
         let end = self.has_space(N * std::mem::size_of::<i32>())?;
-        for i in 0..N {
-            result[i] = self.read_i32()?;
+        for item in result.iter_mut() {
+            *item = self.read_i32()?;
         }
         self.offset = end;
         Ok(result)
