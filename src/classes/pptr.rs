@@ -19,7 +19,7 @@ impl<'a, T: FromObject<'a>> PPtr<'a, T> {
             env: object.env,
             file_id,
             path_id,
-            target: PhantomData::default(),
+            target: PhantomData,
         })
     }
 
@@ -43,7 +43,7 @@ impl<'a, T: FromObject<'a>> PPtr<'a, T> {
                 }
             }
         }
-        return None;
+        None
     }
 }
 

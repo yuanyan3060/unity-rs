@@ -199,10 +199,8 @@ impl<'a> FromObject<'a> for Texture2D {
         if version[0] > 2019 || (version[0] == 2019 && version[1] >= 3) {
             let _is_ignore_master_texture_limit = r.read_bool()?;
         }
-        if version[0] >= 3 {
-            if version[0] < 5 || (version[0] == 5 && version[1] <= 4) {
-                let _read_allowed = r.read_bool()?;
-            }
+        if version[0] >= 3 && (version[0] < 5 || (version[0] == 5 && version[1] <= 4)) {
+            let _read_allowed = r.read_bool()?;
         }
         if version[0] > 2018 || (version[0] == 2018 && version[1] >= 2) {
             let _streaming_mip_maps = r.read_bool()?;
@@ -232,7 +230,7 @@ impl<'a> FromObject<'a> for Texture2D {
         if result.stream_info.path.is_empty() {
             result.data = r.read_u8_list(result.size as usize)?;
         } else {
-            let path = result.stream_info.path.split("/").last().ok_or(UnityError::InvalidValue)?;
+            let path = result.stream_info.path.split('/').last().ok_or(UnityError::InvalidValue)?;
             for i in 0..object.bundle.nodes.len() {
                 let node = &object.bundle.nodes[i];
                 if node.path != path {

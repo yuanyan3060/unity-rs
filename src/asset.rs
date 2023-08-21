@@ -117,7 +117,7 @@ impl Asset {
                     s.push(i)
                 }
             }
-            let s = s.split(".");
+            let s = s.split('.');
             for (i, j) in s.into_iter().enumerate() {
                 if i >= 4 {
                     break;
@@ -284,7 +284,7 @@ impl Asset {
             let is_offset = offset & 0x80000000 == 0;
             if is_offset {
                 r.set_offset(offset)?;
-                return Ok(r.read_string_util_null()?);
+                return r.read_string_util_null();
             }
             let offset = offset & 0x7FFFFFFF;
             match common_string(offset) {

@@ -209,11 +209,9 @@ impl VertexData {
             let mut stride = 0;
             for chn in 0..self.channels.len() {
                 let channel = &self.channels[chn];
-                if channel.stream == s {
-                    if channel.dimension > 0 {
-                        chn_mask |= 1u8 << chn;
-                        stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
-                    }
+                if channel.stream == s && channel.dimension > 0 {
+                    chn_mask |= 1u8 << chn;
+                    stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
                 }
             }
             self.streams.push(StreamInfo {
@@ -225,7 +223,7 @@ impl VertexData {
                 divider_op: 0,
             });
             offset += std::num::Wrapping(self.vertex_count) * std::num::Wrapping(stride);
-            offset = offset + std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
+            offset += std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
         }
         Ok(())
     }
@@ -304,7 +302,7 @@ impl VertexFormat {
             };
             return Ok(result);
         }
-        Ok(VertexFormat::try_from(format).or(Err(UnityError::InvalidValue))?)
+        VertexFormat::try_from(format).or(Err(UnityError::InvalidValue))
     }
 
     fn get_format_size(&self) -> u8 {

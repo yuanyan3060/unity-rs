@@ -21,8 +21,8 @@ pub trait ImageDecoder<const PIXEL_NUM: usize = 1> {
         Self::check_decodiblity(size, img_data.len())?;
 
         let image_chunks = img_data.chunks_exact(Self::DECODE_PIXEL_BYTE);
-        let mut out_buff = WriteBuff::new(size.output_size(),Pixel::PIXEL_SPACE * PIXEL_NUM);
-        for (mut pixel_buf,mut out_buf )in image_chunks.zip(out_buff.to_chunks()) {
+        let mut out_buff = WriteBuff::new(size.output_size(), Pixel::PIXEL_SPACE * PIXEL_NUM);
+        for (mut pixel_buf, mut out_buf) in image_chunks.zip(out_buff.to_chunks()) {
             Self::decode_pixel(&mut pixel_buf)?.write_buf(&mut out_buf);
         }
         Ok(out_buff.inner())

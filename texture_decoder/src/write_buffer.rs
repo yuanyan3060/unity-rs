@@ -17,7 +17,7 @@ impl WriteBuff {
         &self.buffer
     }
 
-    pub(crate) fn inner(self)->Box<[u8]>{
+    pub(crate) fn inner(self) -> Box<[u8]> {
         self.buffer
     }
 }

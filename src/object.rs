@@ -40,7 +40,7 @@ impl ObjectInfo {
         let mut i = 1;
         while i < nodes.len() {
             let node = &nodes[i];
-            let value = Self::read_type_tree_value(&nodes, &mut r, &mut i)?;
+            let value = Self::read_type_tree_value(nodes, &mut r, &mut i)?;
             result.insert(node.name.clone(), value);
             i += 1;
         }

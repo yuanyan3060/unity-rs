@@ -32,13 +32,13 @@ impl<'a> Iterator for ObjectIter<'a> {
             return self.next();
         };
         self.obj_index += 1;
-        return Some(Object {
+        Some(Object {
             env: self.env,
             bundle,
             asset,
             info: info.clone(),
             cache: self.env.cache.clone(),
-        });
+        })
     }
 }
 
