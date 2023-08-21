@@ -15,7 +15,8 @@ pub enum UnityError {
     CustomError(String),
     #[error("DecodeImageError: {0}")]
     DecodeImage(#[from] texture_decoder::error::DecodeImageError),
-
+    #[error("File type[{0:?}] support not implment yet")]
+    UnsupportFileType(String),
     #[error("Unimplemented")]
     Unimplemented,
 }

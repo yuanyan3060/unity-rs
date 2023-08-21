@@ -1,25 +1,20 @@
 #![allow(non_upper_case_globals)]
-use super::animation_clip::AABB;
+use super::animation_clip::AnimationClip;
 use crate::error::{UnityError, UnityResult};
 use crate::object::ObjectInfo;
 use crate::reader::Reader;
 use num_enum::TryFromPrimitive;
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy, Default)]
 #[repr(i32)]
 pub enum GfxPrimitiveType {
+    #[default]
     Triangles = 0,
     TriangleStrip = 1,
     Quads = 2,
     Lines = 3,
     LineStrip = 4,
     Points = 5,
-}
-
-impl Default for GfxPrimitiveType {
-    fn default() -> Self {
-        Self::Triangles
-    }
 }
 
 #[derive(Default, Debug)]
@@ -31,7 +26,7 @@ pub struct SubMesh {
     pub base_vertex: u32,
     pub first_vertex: u32,
     pub vertex_count: u32,
-    pub local_aabb: Option<AABB>,
+    pub local_aabb: Option<AnimationClip>,
 }
 
 impl SubMesh {
@@ -52,7 +47,7 @@ impl SubMesh {
         if version[0] >= 3 {
             result.first_vertex = r.read_u32()?;
             result.vertex_count = r.read_u32()?;
-            result.local_aabb = Some(AABB::load(r)?);
+            result.local_aabb = Some(AnimationClip::load(r)?);
         }
         Ok(result)
     }
@@ -68,12 +63,12 @@ pub struct ChannelInfo {
 
 impl ChannelInfo {
     pub(super) fn load(_object: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
-        let mut result = Self::default();
-        result.stream = r.read_u8()?;
-        result.offset = r.read_u8()?;
-        result.format = r.read_u8()?;
-        result.dimension = r.read_u8()? & 0xF;
-        Ok(result)
+        Ok(Self {
+            stream: r.read_u8()?,
+            offset: r.read_u8()?,
+            format: r.read_u8()?,
+            dimension: r.read_u8()? & 0xF,
+        })
     }
 }
 
@@ -90,9 +85,12 @@ pub struct StreamInfo {
 impl StreamInfo {
     pub(super) fn load(object: &ObjectInfo, r: &mut Reader) -> UnityResult<Self> {
         let version = object.version;
-        let mut result = Self::default();
-        result.channel_mask = r.read_u8()?;
-        result.offset = r.read_u8()?;
+        let mut result = Self {
+            channel_mask: r.read_u8()?,
+            offset: r.read_u8()?,
+            ..Self::default()
+        };
+
         if version[0] < 4 {
             result.stride = r.read_u32()? as u8;
             result.align = r.read_u32()? as u8;
@@ -209,11 +207,9 @@ impl VertexData {
             let mut stride = 0;
             for chn in 0..self.channels.len() {
                 let channel = &self.channels[chn];
-                if channel.stream == s {
-                    if channel.dimension > 0 {
-                        chn_mask |= 1u8 << chn;
-                        stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
-                    }
+                if channel.stream == s && channel.dimension > 0 {
+                    chn_mask |= 1u8 << chn;
+                    stride += channel.dimension * VertexFormat::load(channel.format, version)?.get_format_size()
                 }
             }
             self.streams.push(StreamInfo {
@@ -225,13 +221,13 @@ impl VertexData {
                 divider_op: 0,
             });
             offset += std::num::Wrapping(self.vertex_count) * std::num::Wrapping(stride);
-            offset = offset + std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
+            offset += std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
         }
         Ok(())
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum VertexFormat {
     Float,
@@ -247,7 +243,7 @@ pub enum VertexFormat {
     UInt32,
     SInt32,
 }
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum VertexChannelFormat {
     Float,
@@ -257,7 +253,7 @@ pub enum VertexChannelFormat {
     UInt32,
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum VertexFormat2017 {
     Float,
@@ -304,25 +300,16 @@ impl VertexFormat {
             };
             return Ok(result);
         }
-        Ok(VertexFormat::try_from(format).or(Err(UnityError::InvalidValue))?)
+        VertexFormat::try_from(format).or(Err(UnityError::InvalidValue))
     }
 
     fn get_format_size(&self) -> u8 {
         match *self {
-            VertexFormat::Float => 4,
-            VertexFormat::UInt32 => 4,
-            VertexFormat::SInt32 => 4,
+            VertexFormat::Float | VertexFormat::UInt32 | VertexFormat::SInt32 => 4,
 
-            VertexFormat::Float16 => 2,
-            VertexFormat::UNorm16 => 2,
-            VertexFormat::SNorm16 => 2,
-            VertexFormat::UInt16 => 2,
-            VertexFormat::SInt16 => 2,
+            VertexFormat::Float16 | VertexFormat::UNorm16 | VertexFormat::SNorm16 | VertexFormat::UInt16 | VertexFormat::SInt16 => 2,
 
-            VertexFormat::UNorm8 => 1,
-            VertexFormat::SNorm8 => 1,
-            VertexFormat::UInt8 => 1,
-            VertexFormat::SInt8 => 1,
+            VertexFormat::UNorm8 | VertexFormat::SNorm8 | VertexFormat::UInt8 | VertexFormat::SInt8 => 1,
         }
     }
 }

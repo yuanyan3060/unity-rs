@@ -1,7 +1,7 @@
 #![allow(non_upper_case_globals)]
 use num_enum::FromPrimitive;
 
-#[derive(Debug, Eq, PartialEq, FromPrimitive)]
+#[derive(Debug, Eq, PartialEq, FromPrimitive, Clone, Copy)]
 #[repr(i32)]
 pub enum ClassID {
     #[num_enum(default)]

@@ -93,7 +93,7 @@ impl<'a> SpriteRenderData<'a> {
         if version[0] >= 2019 {
             let size = r.read_i32()?;
             for _ in 0..size {
-                result.secondary_textures.push(SecondarySpriteTexture::load(&object, r)?)
+                result.secondary_textures.push(SecondarySpriteTexture::load(object, r)?)
             }
         }
         if version[0] > 5 || (version[0] == 5 && version[1] >= 6) {
@@ -281,30 +281,28 @@ pub struct Sprite<'a> {
 impl<'a> FromObject<'a> for Sprite<'a> {
     fn load(object: &'a Object) -> UnityResult<Self> {
         let version = object.info.version;
-        let name: String;
-        let rect: RectF32;
-        let offset: Vector2;
+
         let mut border: Option<Vector4> = None;
-        let pixels_to_units: f32;
+
         let mut pivot: Vector2 = Vector2 { x: 0.5, y: 0.5 };
-        let extrude: u8;
+
         let mut is_polygon: bool = false;
         let mut render_data_key: ([u8; 16], i64) = ([0u8; 16], 0);
         let mut atlas_tags: Vec<String> = Vec::new();
         let mut sprite_atlas: Option<PPtr<SpriteAtlas>> = None;
-        let rd: SpriteRenderData;
+
         let mut r = object.info.get_reader();
-        name = r.read_aligned_string()?;
-        rect = r.read_rect_f32()?;
-        offset = r.read_vector2()?;
+        let name: String = r.read_aligned_string()?;
+        let rect: RectF32 = r.read_rect_f32()?;
+        let offset: Vector2 = r.read_vector2()?;
         if version[0] > 4 || (version[0] == 4 && version[1] >= 5) {
             border = Some(r.read_vector4()?);
         }
-        pixels_to_units = r.read_f32()?;
+        let pixels_to_units: f32 = r.read_f32()?;
         if version[0] > 5 || (version[0] == 5 && version[1] > 4) || (version[0] == 5 && version[1] == 4 && version[2] >= 2) || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type == "p" && version[3] >= 3) {
             pivot = r.read_vector2()?;
         }
-        extrude = r.read_u32()? as u8;
+        let extrude: u8 = r.read_u32()? as u8;
         if version[0] > 5 || (version[0] == 5 && version[1] >= 3) {
             is_polygon = r.read_bool()?;
             r.align(4)?;
@@ -316,9 +314,9 @@ impl<'a> FromObject<'a> for Sprite<'a> {
             let second = r.read_i64()?;
             render_data_key = (first, second);
             atlas_tags = r.read_string_list()?;
-            sprite_atlas = Some(PPtr::load(&object, &mut r)?);
+            sprite_atlas = Some(PPtr::load(object, &mut r)?);
         }
-        rd = SpriteRenderData::load(object, &mut r)?;
+        let rd: SpriteRenderData = SpriteRenderData::load(object, &mut r)?;
         Ok(Self {
             name,
             rect,
@@ -418,8 +416,8 @@ impl<'a> Sprite<'a> {
                 imageproc::drawing::draw_polygon_mut(&mut mask, &poly, image::Luma([255]))
             }
             let img = imageproc::map::map_colors2(&sprite_image, &mask, |a, b| if b.0[0] != 0 { image::Rgba([a.0[0], a.0[1], a.0[2], a.0[3]]) } else { image::Rgba([0, 0, 0, 0]) });
-            return Ok(img.into());
+            return Ok(img);
         }
-        return Ok(sprite_image.into_rgba8());
+        Ok(sprite_image.into_rgba8())
     }
 }
