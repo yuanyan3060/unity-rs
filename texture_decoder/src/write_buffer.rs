@@ -7,9 +7,7 @@ pub struct WriteBuff {
 
 impl WriteBuff {
     pub(crate) fn new(size: usize, chunk_size: usize) -> Self {
-        let mut buf = Vec::with_capacity(size);
-        buf.fill(0u8);
-
+        let buf = vec![0; size];
         Self { buffer: buf.into_boxed_slice(), chunk_size }
     }
 
