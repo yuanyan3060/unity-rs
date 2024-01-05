@@ -42,7 +42,7 @@ pub trait WritePixelBuf {
 
 impl WritePixelBuf for Pixel {
     fn write_buf(&self, buffer: &mut impl BufMut) {
-        buffer.put_slice(&self.to_slice())
+        buffer.put_slice(&self.as_array())
     }
 }
 
