@@ -7,6 +7,7 @@ use crate::error::UnityResult;
 use crate::math::{Matrix4x4, RectF32, Vector2, Vector3, Vector4};
 use crate::object::ObjectInfo;
 use crate::reader::{ByteOrder, Reader};
+use crate::UnityError;
 use image::imageops::FilterType;
 use image::{DynamicImage, RgbaImage};
 use imageproc::point::Point;
@@ -352,7 +353,7 @@ impl<'a> Sprite<'a> {
             let texture2d = texture2d.read()?;
             return self.cut_image(&texture2d, self.rd.texture_rect, self.rd.texture_rect_offset, self.rd.downscale_multiplier, &self.rd.setting_raw);
         }
-        todo!()
+        Err(UnityError::Unimplemented)
     }
     fn cut_image(&self, texture2d: &Texture2D, rect: RectF32, _offset: Vector2, downscale_multiplier: f32, setting: &SpriteSettings) -> UnityResult<RgbaImage> {
         let origin_image = texture2d.decode_image()?;

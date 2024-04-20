@@ -188,9 +188,9 @@ impl AssetBundle {
         let compressed_type = CompressionType::from_magic_num(self.header.flags & ArchiveFlags::CompressionTypeMask as u32)?;
         let block_info_uncompressed_bytes = match compressed_type {
             CompressionType::None => block_info_bytes,
-            CompressionType::Lzma => todo!(),
+            CompressionType::Lzma => return Err(UnityError::Unimplemented),
             CompressionType::Lz4 | CompressionType::Lz4HC => lz4_flex::decompress(&block_info_bytes, uncompressed_size as usize)?,
-            CompressionType::Lzham => todo!(),
+            CompressionType::Lzham => return Err(UnityError::Unimplemented),
         };
         let mut block_info_reader = Reader::new(&block_info_uncompressed_bytes, ByteOrder::Big);
         let _uncompressed_data_hash = block_info_reader.read_u8_slice(16)?;

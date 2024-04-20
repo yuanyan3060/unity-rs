@@ -283,6 +283,30 @@ impl Texture2D {
                 texture2ddecoder::decode_atc_rgba8(&self.data, width as usize, height as usize, image)?;
                 Ok(result)
             }
+            TextureFormat::ASTC_RGB_4x4 => {
+                texture2ddecoder::decode_astc_4_4(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGB_5x5 => {
+                texture2ddecoder::decode_astc_5_5(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGB_6x6 => {
+                texture2ddecoder::decode_astc_6_6(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGB_8x8 => {
+                texture2ddecoder::decode_astc_8_8(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGB_10x10 => {
+                texture2ddecoder::decode_astc_10_10(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::ASTC_RGB_12x12 => {
+                texture2ddecoder::decode_astc_12_12(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
             TextureFormat::ASTC_RGBA_4x4 => {
                 texture2ddecoder::decode_astc_4_4(&self.data, width as usize, height as usize, image)?;
                 Ok(result)

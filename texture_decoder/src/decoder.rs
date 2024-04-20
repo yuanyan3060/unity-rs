@@ -22,7 +22,7 @@ pub trait ImageDecoder<const PIXEL_NUM: usize = 1> {
 
         let image_chunks = img_data.chunks_exact(Self::DECODE_PIXEL_BYTE);
         let mut out_buff = WriteBuff::new(size.output_size(), Pixel::PIXEL_SPACE * PIXEL_NUM);
-        for (mut pixel_buf, mut out_buf) in image_chunks.zip(out_buff.to_chunks()) {
+        for (mut pixel_buf, mut out_buf) in image_chunks.zip(out_buff.as_chunks()) {
             Self::decode_pixel(&mut pixel_buf)?.write_buf(&mut out_buf);
         }
         Ok(out_buff.inner())
@@ -32,7 +32,7 @@ pub trait ImageDecoder<const PIXEL_NUM: usize = 1> {
         Self::check_decodiblity(size, img_data.len())?;
         let image_chunks = img_data.chunks_exact(Self::DECODE_PIXEL_BYTE);
         let mut buf = WriteBuff::new(size.output_size(), Pixel::PIXEL_SPACE * PIXEL_NUM);
-        image_chunks.zip(buf.to_chunks()).par_bridge().try_for_each(|(mut buff, mut write_buf)| {
+        image_chunks.zip(buf.as_chunks()).par_bridge().try_for_each(|(mut buff, mut write_buf)| {
             let pixels = Self::decode_pixel(&mut buff)?;
             pixels.write_buf(&mut write_buf);
 

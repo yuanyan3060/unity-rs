@@ -15,9 +15,9 @@ pub struct Pixel {
     alpha: u8,
 }
 
-impl Into<SinglePixel> for Pixel {
-    fn into(self) -> SinglePixel {
-        [self]
+impl From<Pixel> for SinglePixel {
+    fn from(val: Pixel) -> Self {
+        [val]
     }
 }
 
@@ -48,6 +48,6 @@ impl WritePixelBuf for Pixel {
 
 impl<const N: usize> WritePixelBuf for [Pixel; N] {
     fn write_buf(&self, buffer: &mut impl BufMut) {
-        self.into_iter().for_each(|pixel| pixel.write_buf(buffer))
+        self.iter().for_each(|pixel| pixel.write_buf(buffer))
     }
 }

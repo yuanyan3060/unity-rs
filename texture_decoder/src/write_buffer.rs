@@ -11,17 +11,13 @@ impl WriteBuff {
         Self { buffer: buf.into_boxed_slice(), chunk_size }
     }
 
-    pub(crate) fn as_slice(&self) -> &[u8] {
-        &self.buffer
-    }
-
     pub(crate) fn inner(self) -> Box<[u8]> {
         self.buffer
     }
 }
 
 impl WriteBuff {
-    pub fn to_chunks(&mut self) -> ChunksExactMut<'_, u8> {
+    pub fn as_chunks(&mut self) -> ChunksExactMut<'_, u8> {
         self.buffer.chunks_exact_mut(self.chunk_size)
     }
 }
