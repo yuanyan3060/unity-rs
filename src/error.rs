@@ -17,6 +17,8 @@ pub enum UnityError {
     DecodeImage(#[from] texture_decoder::error::DecodeImageError),
     #[error("File type[{0:?}] support not implment yet")]
     UnsupportFileType(String),
+    #[error("Image is zero sized")]
+    ZeroSizeImage,
     #[error("Unimplemented")]
     Unimplemented,
 }

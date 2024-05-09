@@ -40,13 +40,10 @@ pub struct FileIdentifier {
     pub guid: [u8; 16],
     pub type_: i32,
     pub path_name: String,
-    //file_name: String,
 }
 
 pub struct Asset {
-    //full_name: String,
-    //path: String,
-    //file_name: String,
+    pub path: String,
     pub version: [i32; 4],
     pub build_type: String,
     pub header: SerializedFileHeader,
@@ -64,12 +61,10 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub(crate) fn new(src: Arc<Vec<u8>>) -> UnityResult<Self> {
+    pub(crate) fn new(src: Arc<Vec<u8>>, path: &str) -> UnityResult<Self> {
         let mut r = Reader::new(src.as_slice(), ByteOrder::Big);
         let mut ret = Self {
-            //full_name: String::default(),
-            //path: String::default(),
-            //file_name: String::default(),
+            path: path.to_string(),
             version: [0; 4],
             build_type: String::default(),
             header: SerializedFileHeader::default(),
@@ -347,5 +342,13 @@ impl Asset {
             self.read_type_tree(r, type_tree, level + 1)?;
         }
         Ok(())
+    }
+
+    pub fn version_greater_or_equal(&self, other: &[i32]) -> bool {
+        !self.version.iter()
+            .zip(other.iter())
+            .any(|(x, y)| {
+                *x < *y
+            })
     }
 }

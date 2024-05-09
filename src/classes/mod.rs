@@ -10,6 +10,7 @@ mod mono_behaviour;
 mod game_object;
 mod component;
 mod mono_script;
+mod audio_clip;
 
 use crate::error::UnityResult;
 pub use id::ClassID;
@@ -19,6 +20,7 @@ pub use sprite::Sprite;
 pub use text_asset::TextAsset;
 pub use texture2d::Texture2D;
 pub use mono_behaviour::MonoBehaviour;
+pub use audio_clip::AudioClip;
 
 pub trait FromObject<'a>
 where

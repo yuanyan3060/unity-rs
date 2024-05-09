@@ -256,6 +256,9 @@ impl Texture2D {
     pub fn decode_image_without_cache(&self) -> UnityResult<RgbaImage> {
         let width = self.width;
         let height = self.height;
+        if width <= 0 || height <= 0 {
+            return Err(UnityError::ZeroSizeImage);
+        }
         let format = self.format;
         let size = ImageSize::new(width as usize, height as usize);
         let mut result: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width as u32, height as u32);

@@ -11,7 +11,7 @@ pub trait ImageDecoder<const PIXEL_NUM: usize = 1> {
         let data_base_times = data_len / Self::DECODE_PIXEL_BYTE;
         let size_base_times = size.size() / PIXEL_NUM;
 
-        if data_base_times != size_base_times {
+        if data_base_times < size_base_times {
             Err(DecodeImageError::SizeNotMatch(data_base_times, size_base_times))?;
         }
         Ok(())

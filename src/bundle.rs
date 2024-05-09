@@ -325,11 +325,11 @@ impl AssetBundle {
 
     pub fn load_assets(&self) -> UnityResult<Vec<Asset>> {
         let mut ret = Vec::new();
-        for file in &self.files {
+        for (file, node) in self.files.iter().zip(self.nodes.iter()) {
             if FileType::AssetsFile != AssetBundle::check_file_type(file).unwrap() {
                 continue;
             }
-            ret.push(Asset::new(file.clone())?)
+            ret.push(Asset::new(file.clone(), &node.path)?)
         }
         Ok(ret)
     }

@@ -328,6 +328,15 @@ impl<'a> Reader<'a> {
         Ok(ret)
     }
 
+    pub fn read_u32_list(&mut self, size: usize) -> UnityResult<Vec<u32>> {
+        let _end = self.has_space(size)?;
+        let mut ret = Vec::with_capacity(size);
+        for _ in 0..size {
+            ret.push(self.read_u32()?)
+        }
+        Ok(ret)
+    }
+
     pub fn read_string_list(&mut self) -> UnityResult<Vec<String>> {
         let length = self.read_i32()?;
         let mut result = Vec::with_capacity(length as usize);
