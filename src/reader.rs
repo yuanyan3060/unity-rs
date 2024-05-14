@@ -210,38 +210,46 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_string_util_null(&mut self) -> UnityResult<String> {
-        let mut ret = String::new();
+        let mut ret = Vec::new();
         loop {
             let b = self.read_u8()?;
             if b == 0 {
                 break;
             } else {
-                ret.push(b as char);
+                ret.push(b);
             }
         }
-        Ok(ret)
+        Ok(String::from_utf8(ret)?)
     }
 
     pub fn read_string_util_null_with_limit(&mut self, limit: usize) -> UnityResult<String> {
-        let mut ret = String::new();
+        let mut ret = Vec::new();
         for _ in 0..limit {
             let b = self.read_u8()?;
             if b == 0 {
                 break;
             } else {
-                ret.push(b as char);
+                ret.push(b);
+            }
+        }
+        Ok(String::from_utf8(ret)?)
+    }
+
+    pub fn read_u8_list_util_null_with_limit(&mut self, limit: usize) -> UnityResult<Vec<u8>> {
+        let mut ret = Vec::new();
+        for _ in 0..limit {
+            let b = self.read_u8()?;
+            if b == 0 {
+                break;
+            } else {
+                ret.push(b);
             }
         }
         Ok(ret)
     }
 
     pub fn read_string_with_length(&mut self, length: usize) -> UnityResult<String> {
-        let mut ret = String::with_capacity(length);
-        for _ in 0..length {
-            let b = self.read_u8()?;
-            ret.push(b as char);
-        }
-        Ok(ret)
+        Ok(String::from_utf8(self.read_u8_list(length)?)?)
     }
 
     pub fn read_string_with_7bit_length(&mut self) -> UnityResult<String> {
@@ -250,12 +258,9 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_aligned_string(&mut self) -> UnityResult<String> {
-        let this = self as *mut Self;
         let length = self.read_i32()?;
         let result = self.read_string_with_length(length as usize);
-        unsafe {
-            this.as_mut().unwrap().align(4)?;
-        }
+        self.align(4)?;
         result
     }
 

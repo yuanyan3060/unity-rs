@@ -1,3 +1,5 @@
+use std::string::FromUtf8Error;
+
 use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum UnityError {
@@ -19,6 +21,8 @@ pub enum UnityError {
     UnsupportFileType(String),
     #[error("Image is zero sized")]
     ZeroSizeImage,
+    #[error("FromUtf8Error")]
+    FromUtf8Error(#[from] FromUtf8Error),
     #[error("Unimplemented")]
     Unimplemented,
 }

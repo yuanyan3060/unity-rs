@@ -294,10 +294,10 @@ impl AssetBundle {
         let zip_magic = [0x50, 0x4B, 0x03, 0x04];
         let zip_spanned_magic = [0x50, 0x4B, 0x07, 0x08];
         let mut r = Reader::new(data, ByteOrder::Big);
-        let signature = r.read_string_util_null_with_limit(20)?;
-        match signature.as_str() {
-            "UnityWeb" | "UnityRaw" | "UnityArchive" | "UnityFS" => Ok(FileType::BundleFile),
-            "UnityWebData1.0" => Ok(FileType::WebFile),
+        let signature = r.read_u8_list_util_null_with_limit(20)?;
+        match signature.as_slice() {
+            b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS" => Ok(FileType::BundleFile),
+            b"UnityWebData1.0" => Ok(FileType::WebFile),
             _ => {
                 let magic: [u8; 2] = r.read_u8_array()?;
                 r.set_offset(0)?;
