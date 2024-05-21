@@ -219,7 +219,7 @@ impl<'a> Reader<'a> {
                 ret.push(b);
             }
         }
-        Ok(String::from_utf8(ret)?)
+        Ok(String::from_utf8_lossy(&ret).to_string())
     }
 
     pub fn read_string_util_null_with_limit(&mut self, limit: usize) -> UnityResult<String> {
@@ -232,7 +232,7 @@ impl<'a> Reader<'a> {
                 ret.push(b);
             }
         }
-        Ok(String::from_utf8(ret)?)
+        Ok(String::from_utf8_lossy(&ret).to_string())
     }
 
     pub fn read_u8_list_util_null_with_limit(&mut self, limit: usize) -> UnityResult<Vec<u8>> {
@@ -249,7 +249,7 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_string_with_length(&mut self, length: usize) -> UnityResult<String> {
-        Ok(String::from_utf8(self.read_u8_list(length)?)?)
+        Ok(String::from_utf8_lossy(self.read_u8_slice(length)?).to_string())
     }
 
     pub fn read_string_with_7bit_length(&mut self) -> UnityResult<String> {
