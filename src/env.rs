@@ -27,9 +27,9 @@ impl<'a> Iterator for ObjectIter<'a> {
             self.bundle_index += 1;
             return self.next();
         };
-        let Some(info) = asset.objects_info.get(self.obj_index) else{
+        let Some(info) = asset.objects_info.get(self.obj_index) else {
             self.obj_index = 0;
-            self.asset_index +=1;
+            self.asset_index += 1;
             return self.next();
         };
         self.obj_index += 1;

@@ -111,11 +111,11 @@ impl GLTextureSettings {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct StreamingInfo {
-    offset: u64,
-    size: u32,
-    path: String,
+    pub offset: u64,
+    pub size: u32,
+    pub path: String,
 }
 
 impl StreamingInfo {

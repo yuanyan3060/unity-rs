@@ -300,7 +300,7 @@ impl<'a> FromObject<'a> for Sprite<'a> {
             border = Some(r.read_vector4()?);
         }
         let pixels_to_units: f32 = r.read_f32()?;
-        if version[0] > 5 || (version[0] == 5 && version[1] > 4) || (version[0] == 5 && version[1] == 4 && version[2] >= 2) || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type == "p" && version[3] >= 3) {
+        if version[0] > 5 || (version[0] == 5 && version[1] > 4) || (version[0] == 5 && version[1] == 4 && version[2] >= 2) || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type.is_patch() && version[3] >= 3) {
             pivot = r.read_vector2()?;
         }
         let extrude: u8 = r.read_u32()? as u8;

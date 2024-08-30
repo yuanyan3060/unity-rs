@@ -11,7 +11,7 @@ pub struct MonoBehaviour<'a> {
     pub game_object: PPtr<'a, GameObject>,
     pub enable: bool,
     pub script: PPtr<'a, MonoScript>,
-    pub name: String
+    pub name: String,
 }
 
 impl<'a> FromObject<'a> for MonoBehaviour<'a> {

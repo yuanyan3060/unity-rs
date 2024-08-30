@@ -1,7 +1,7 @@
 use crate::error::{UnityError, UnityResult};
 use crate::math::{Matrix4x4, RectF32, Vector2, Vector3, Vector4};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ByteOrder {
     Big,
     Little,

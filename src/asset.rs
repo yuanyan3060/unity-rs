@@ -42,10 +42,32 @@ pub struct FileIdentifier {
     pub path_name: String,
 }
 
+#[derive(Clone, PartialEq, Eq)]
+pub enum BuildType {
+    Unknown,
+    Alpha,
+    Patch,
+    Other(String),
+}
+
+impl BuildType {
+    pub fn new(type_: String) -> Self {
+        match type_.as_str() {
+            "a" => Self::Alpha,
+            "p" => Self::Patch,
+            _ => Self::Other(type_),
+        }
+    }
+
+    pub fn is_patch(&self) -> bool {
+        &Self::Patch == self
+    }
+}
+
 pub struct Asset {
     pub path: String,
     pub version: [i32; 4],
-    pub build_type: String,
+    pub build_type: BuildType,
     pub header: SerializedFileHeader,
     pub file_endian: u8,
     pub unity_version: String,
@@ -66,7 +88,7 @@ impl Asset {
         let mut ret = Self {
             path: path.to_string(),
             version: [0; 4],
-            build_type: String::default(),
+            build_type: BuildType::Unknown,
             header: SerializedFileHeader::default(),
             file_endian: 0,
             unity_version: String::default(),
@@ -106,7 +128,7 @@ impl Asset {
             let mut s = String::new();
             for i in ret.unity_version.chars() {
                 if i.is_ascii_alphabetic() {
-                    ret.build_type = i.to_string();
+                    ret.build_type = BuildType::new(i.to_string());
                     s.push('.');
                 } else {
                     s.push(i)
@@ -345,10 +367,6 @@ impl Asset {
     }
 
     pub fn version_greater_or_equal(&self, other: &[i32]) -> bool {
-        !self.version.iter()
-            .zip(other.iter())
-            .any(|(x, y)| {
-                *x < *y
-            })
+        !self.version.iter().zip(other.iter()).any(|(x, y)| *x < *y)
     }
 }

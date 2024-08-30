@@ -1,4 +1,4 @@
-use crate::asset::SerializedType;
+use crate::asset::{BuildType, SerializedType};
 use crate::classes::ClassID;
 use crate::error::UnityResult;
 use crate::reader::{ByteOrder, Reader};
@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ObjectInfo {
-    pub build_type: String,
+    pub build_type: BuildType,
     pub asset_version: u32,
     pub bytes_start: usize,
     pub bytes_size: usize,
