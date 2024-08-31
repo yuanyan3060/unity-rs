@@ -11,6 +11,8 @@ mod sprite;
 mod sprite_atlas;
 mod text_asset;
 mod texture2d;
+mod material;
+mod shader;
 
 use crate::error::UnityResult;
 pub use id::ClassID;
@@ -22,6 +24,7 @@ pub use mono_behaviour::MonoBehaviour;
 pub use sprite::Sprite;
 pub use text_asset::TextAsset;
 pub use texture2d::Texture2D;
+pub use material::Material;
 
 pub trait FromObject<'a>
 where

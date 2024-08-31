@@ -96,3 +96,20 @@ impl Matrix4x4 {
         }
     }
 }
+
+pub struct Color {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+impl Color {
+    pub fn from_array(array: [f32; 4]) -> Self {
+        Self::new(array[0], array[1], array[2], array[3])
+    }
+
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self { r, g, b, a }
+    }
+}

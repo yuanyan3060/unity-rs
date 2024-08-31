@@ -859,7 +859,7 @@ impl StreamInfo {
 #[derive(Default, Debug)]
 pub struct VertexData {
     pub current_channels: u8,
-    pub vertex_count: u8,
+    pub vertex_count: usize,
     pub channels: Vec<ChannelInfo>,
     pub streams: Vec<StreamInfo>,
     pub data_size: Vec<u8>,
@@ -873,7 +873,7 @@ impl VertexData {
             result.current_channels = r.read_u32()? as u8;
         }
 
-        result.vertex_count = r.read_u32()? as u8;
+        result.vertex_count = r.read_u32()? as usize;
 
         if version[0] >= 4 {
             let size = r.read_i32()?;
@@ -976,7 +976,7 @@ impl VertexData {
                 frequency: 0,
                 divider_op: 0,
             });
-            offset += std::num::Wrapping(self.vertex_count) * std::num::Wrapping(stride);
+            offset += std::num::Wrapping(self.vertex_count as u8) * std::num::Wrapping(stride);
             offset += std::num::Wrapping((16u8 - 1u8) & (!(16u8 - 1u8)));
         }
         Ok(())
