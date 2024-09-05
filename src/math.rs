@@ -113,3 +113,20 @@ impl Color {
         Self { r, g, b, a }
     }
 }
+
+pub struct Quaternion {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
+}
+
+impl Quaternion {
+    pub fn from_array(array: [f32; 4]) -> Self {
+        Self::new(array[0], array[1], array[2], array[3])
+    }
+
+    pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
+        Self { x, y, z, w }
+    }
+}

@@ -7,7 +7,7 @@ use super::game_object::GameObject;
 use super::pptr::PPtr;
 
 pub struct Component<'a> {
-    pub game_object: PPtr<'a, GameObject>,
+    pub game_object: PPtr<'a, GameObject<'a>>,
 }
 
 impl<'a> FromObject<'a> for Component<'a> {

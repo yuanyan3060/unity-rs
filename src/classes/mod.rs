@@ -13,6 +13,7 @@ mod text_asset;
 mod texture2d;
 mod material;
 mod shader;
+mod transform;
 
 use crate::error::UnityResult;
 pub use id::ClassID;
@@ -21,10 +22,14 @@ use crate::env::Object;
 pub use audio_clip::AudioClip;
 pub use mesh::Mesh;
 pub use mono_behaviour::MonoBehaviour;
+pub use mono_script::MonoScript;
 pub use sprite::Sprite;
 pub use text_asset::TextAsset;
 pub use texture2d::Texture2D;
 pub use material::Material;
+pub use transform::Transform;
+pub use component::Component;
+pub use game_object::GameObject;
 
 pub trait FromObject<'a>
 where

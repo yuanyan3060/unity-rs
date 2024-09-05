@@ -8,7 +8,7 @@ use super::mono_script::MonoScript;
 use super::pptr::PPtr;
 
 pub struct MonoBehaviour<'a> {
-    pub game_object: PPtr<'a, GameObject>,
+    pub game_object: PPtr<'a, GameObject<'a>>,
     pub enable: bool,
     pub script: PPtr<'a, MonoScript>,
     pub name: String,
