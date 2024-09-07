@@ -15,6 +15,10 @@ impl<'a> FromObject<'a> for Component<'a> {
         let mut r = object.info.get_reader();
         Self::from_reader(object, &mut r)
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Component
+    }
 }
 
 impl<'a> Component<'a> {

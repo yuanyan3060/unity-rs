@@ -26,4 +26,8 @@ impl<'a> FromObject<'a> for GameObject<'a> {
         let name = r.read_aligned_string()?;
         Ok(Self { components, name })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::GameObject
+    }
 }

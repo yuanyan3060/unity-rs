@@ -24,4 +24,8 @@ impl<'a> FromObject<'a> for MonoBehaviour<'a> {
         let name = r.read_aligned_string()?;
         Ok(Self { game_object, enable, script, name })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::MonoBehaviour
+    }
 }

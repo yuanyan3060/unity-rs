@@ -14,6 +14,8 @@ mod texture2d;
 mod material;
 mod shader;
 mod transform;
+mod renderer;
+mod mesh_renderer;
 
 use crate::error::UnityResult;
 pub use id::ClassID;
@@ -30,10 +32,13 @@ pub use material::Material;
 pub use transform::Transform;
 pub use component::Component;
 pub use game_object::GameObject;
+pub use renderer::Renderer;
+pub use mesh_renderer::MeshRenderer;
 
 pub trait FromObject<'a>
 where
     Self: Sized,
 {
     fn load(object: &'a Object<'a>) -> UnityResult<Self>;
+    fn class() -> ClassID;
 }

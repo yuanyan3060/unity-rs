@@ -34,4 +34,8 @@ impl<'a> FromObject<'a> for Transform<'a> {
             father: PPtr::<Self>::load(object, &mut r)?,
         })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Transform
+    }
 }

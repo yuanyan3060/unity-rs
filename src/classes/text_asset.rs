@@ -16,6 +16,10 @@ impl<'a> FromObject<'a> for TextAsset {
         let script = r.read_u8_list(length as usize)?;
         Ok(Self { name, script, path_id: object.info.path_id })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::TextAsset
+    }
 }
 
 impl TextAsset {

@@ -82,4 +82,8 @@ impl<'a> FromObject<'a> for SpriteAtlas<'a> {
             is_variant,
         })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::SpriteAtlas
+    }
 }

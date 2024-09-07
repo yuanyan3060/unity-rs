@@ -333,6 +333,10 @@ impl<'a> FromObject<'a> for Sprite<'a> {
             rd,
         })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Sprite
+    }
 }
 
 impl<'a> Sprite<'a> {

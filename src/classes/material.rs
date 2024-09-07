@@ -53,6 +53,10 @@ impl<'a> FromObject<'a> for Material<'a> {
         }
         Ok(Self { name, shader, saved_properties: UnityPropertySheet::load(object, r)? })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Material
+    }
 }
 
 pub struct UnityPropertySheet<'a> {

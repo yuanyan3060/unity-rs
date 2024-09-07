@@ -242,6 +242,10 @@ impl<'a> FromObject<'a> for Texture2D {
         }
         Ok(result)
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Texture2D
+    }
 }
 impl Texture2D {
     pub fn decode_image(&self) -> UnityResult<Ref<i64, RgbaImage>> {

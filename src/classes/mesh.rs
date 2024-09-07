@@ -83,8 +83,8 @@ impl Mesh {
         let Some(vertex_data) = self.vertex_data.as_mut() else {
             return Ok(());
         };
-        self.vertex_count = vertex_data.vertex_count as usize;
-        let vertex_count = vertex_data.vertex_count as usize;
+        self.vertex_count = vertex_data.vertex_count;
+        let vertex_count = vertex_data.vertex_count;
         for (chn, channel) in vertex_data.channels.iter_mut().enumerate() {
             if channel.dimension == 0 {
                 continue;
@@ -588,6 +588,10 @@ impl<'a> FromObject<'a> for Mesh {
         }
         ret.process_data(object)?;
         Ok(ret)
+    }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Mesh
     }
 }
 

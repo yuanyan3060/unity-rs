@@ -33,4 +33,8 @@ impl<'a> FromObject<'a> for MonoScript {
         }
         Ok(Self { name, class_name, namespace, assembly_name })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::MonoScript
+    }
 }

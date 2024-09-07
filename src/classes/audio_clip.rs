@@ -173,6 +173,10 @@ impl<'a> FromObject<'a> for AudioClip {
         };
         Ok(Self { name, meta, source, offset, size, data })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::AudioClip
+    }
 }
 
 impl AudioClip {
