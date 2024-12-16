@@ -30,10 +30,8 @@ impl SubMeshInfo {
                 let left = static_batch_info.first_sub_mesh..(static_batch_info.first_sub_mesh + static_batch_info.sub_mesh_count);
                 let left = left.map(|x| x as u32);
                 Either::Left(left)
-            },
-            SubMeshInfo::SubsetIndices(subset_indices) => {
-                Either::Right(subset_indices.iter().cloned())
-            },
+            }
+            SubMeshInfo::SubsetIndices(subset_indices) => Either::Right(subset_indices.iter().cloned()),
         }
     }
 }

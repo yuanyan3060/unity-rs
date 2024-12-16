@@ -253,8 +253,7 @@ impl Texture2D {
             return Ok(img);
         }
         let img = self.decode_image_without_cache()?;
-        self.cache.insert(self.path_id, img);
-        return Ok(self.cache.get(&self.path_id).unwrap());
+        return Ok(self.cache.entry(self.path_id).insert(img).downgrade());
     }
 
     pub fn decode_image_without_cache(&self) -> UnityResult<RgbaImage> {

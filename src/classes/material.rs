@@ -51,7 +51,11 @@ impl<'a> FromObject<'a> for Material<'a> {
         if version[0] > 5 || (version[0] == 5 && version[1] >= 6) {
             let _disabled_shader_passes = r.read_string_list()?;
         }
-        Ok(Self { name, shader, saved_properties: UnityPropertySheet::load(object, r)? })
+        Ok(Self {
+            name,
+            shader,
+            saved_properties: UnityPropertySheet::load(object, r)?,
+        })
     }
 
     fn class() -> super::ClassID {
@@ -78,7 +82,7 @@ impl<'a> UnityPropertySheet<'a> {
         if version[0] >= 2021 {
             let ints_size = r.read_i32()? as usize;
             ints = HashMap::with_capacity(ints_size);
-            for _ in 0..ints_size{
+            for _ in 0..ints_size {
                 ints.insert(r.read_aligned_string()?, r.read_i32()?);
             }
         }
