@@ -156,7 +156,7 @@ pub struct Texture2D {
     pub data: Vec<u8>,
 }
 
-impl<'a> FromObject<'a> for Texture2D {
+impl FromObject<'_> for Texture2D {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let mut result = Self {
@@ -253,7 +253,7 @@ impl Texture2D {
             return Ok(img);
         }
         let img = self.decode_image_without_cache()?;
-        return Ok(self.cache.entry(self.path_id).insert(img).downgrade());
+        Ok(self.cache.entry(self.path_id).insert(img).downgrade())
     }
 
     pub fn decode_image_without_cache(&self) -> UnityResult<RgbaImage> {

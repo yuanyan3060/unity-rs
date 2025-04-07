@@ -8,7 +8,7 @@ pub struct TextAsset {
     pub path_id: i64,
 }
 
-impl<'a> FromObject<'a> for TextAsset {
+impl FromObject<'_> for TextAsset {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let name = r.read_aligned_string()?;

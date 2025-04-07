@@ -24,7 +24,7 @@ pub enum SubMeshInfo {
 }
 
 impl SubMeshInfo {
-    pub fn sub_mesh_indices<'a>(&'a self) -> impl Iterator<Item = u32> + 'a {
+    pub fn sub_mesh_indices(&self) -> impl Iterator<Item = u32> + '_ {
         match self {
             SubMeshInfo::StaticBatchInfo(static_batch_info) => {
                 let left = static_batch_info.first_sub_mesh..(static_batch_info.first_sub_mesh + static_batch_info.sub_mesh_count);

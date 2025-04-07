@@ -96,7 +96,7 @@ pub struct AudioClip {
     pub data: Vec<u8>,
 }
 
-impl<'a> FromObject<'a> for AudioClip {
+impl FromObject<'_> for AudioClip {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let name = r.read_aligned_string()?;

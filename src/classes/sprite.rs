@@ -339,7 +339,7 @@ impl<'a> FromObject<'a> for Sprite<'a> {
     }
 }
 
-impl<'a> Sprite<'a> {
+impl Sprite<'_> {
     pub fn decode_image(&self) -> UnityResult<RgbaImage> {
         if let Some(sprite_atlas) = self.sprite_atlas.as_ref().and_then(|x| x.get_obj()) {
             if let Some(sprite_atlas_data) = sprite_atlas.read::<SpriteAtlas>()?.render_data_map.get(&self.render_data_key) {

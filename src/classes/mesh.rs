@@ -106,7 +106,7 @@ impl Mesh {
                 for d in 0..channel.dimension {
                     let component_offset = vertex_offset + component_byte_size * d as usize;
                     let end = component_offset + component_byte_size;
-                    let sub = vertex_data.data_size.get(component_offset..end).ok_or_else(|| UnityError::Eof)?;
+                    let sub = vertex_data.data_size.get(component_offset..end).ok_or(UnityError::Eof)?;
                     component_bytes.extend_from_slice(sub);
                 }
             }
@@ -370,11 +370,11 @@ impl Mesh {
             let index_count = sub_mesh.index_count as usize;
             let topology = sub_mesh.topology;
             if topology == GfxPrimitiveType::Triangles {
-                let sub = self.index_buffer.get(first_index..(first_index + index_count - index_count % 3)).ok_or_else(|| UnityError::Eof)?;
+                let sub = self.index_buffer.get(first_index..(first_index + index_count - index_count % 3)).ok_or(UnityError::Eof)?;
                 self.indices.extend_from_slice(sub)
             } else if version[0] < 4 || topology == GfxPrimitiveType::TriangleStrip {
                 let mut tri_index = 0;
-                let mut iter = self.index_buffer.get(first_index..).ok_or_else(|| UnityError::Eof)?.windows(3).enumerate();
+                let mut iter = self.index_buffer.get(first_index..).ok_or(UnityError::Eof)?.windows(3).enumerate();
                 while let Some((i, &[a, b, c])) = iter.next() {
                     if a == b || a == c || b == c {
                         continue;
@@ -391,7 +391,7 @@ impl Mesh {
                 }
                 sub_mesh.index_count = tri_index;
             } else if topology == GfxPrimitiveType::Quads {
-                let mut iter = self.index_buffer.get(first_index..).ok_or_else(|| UnityError::Eof)?.windows(4);
+                let mut iter = self.index_buffer.get(first_index..).ok_or(UnityError::Eof)?.windows(4);
                 while let Some(&[a, b, c, d]) = iter.next() {
                     self.indices.extend([a, b, c, d, a, b, c, d])
                 }

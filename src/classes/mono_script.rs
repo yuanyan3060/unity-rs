@@ -9,7 +9,7 @@ pub struct MonoScript {
     pub assembly_name: String,
 }
 
-impl<'a> FromObject<'a> for MonoScript {
+impl FromObject<'_> for MonoScript {
     fn load(object: &Object) -> UnityResult<Self> {
         let version = object.info.version;
         let mut r = object.info.get_reader();

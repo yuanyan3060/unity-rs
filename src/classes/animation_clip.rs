@@ -48,7 +48,7 @@ impl PackedFloatVector {
         let mut bit_pos = bit_pos % 8;
 
         let scale = 1.0 / self.range;
-        let num_chunks = num_chunks.unwrap_or((self.num_items as usize + item_count_in_chunk - 1) / item_count_in_chunk);
+        let num_chunks = num_chunks.unwrap_or((self.num_items as usize).div_ceil(item_count_in_chunk));
         let end = chunk_stride * num_chunks / 4;
         let mut data = Vec::with_capacity(end);
 

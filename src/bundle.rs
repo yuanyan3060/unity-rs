@@ -46,12 +46,13 @@ pub enum StorageBlockFlags {
     Streamed = 0x40,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum CompressionType {
     None,
     Lzma,
     Lz4,
     Lz4HC,
-    Lzham,
+    LzInv,
 }
 
 impl CompressionType {
@@ -61,7 +62,7 @@ impl CompressionType {
             1 => Self::Lzma,
             2 => Self::Lz4,
             3 => Self::Lz4HC,
-            4 => Self::Lzham,
+            4 => Self::LzInv,
             _ => return Err(UnityError::InvalidValue),
         };
         Ok(ret)
@@ -190,7 +191,7 @@ impl AssetBundle {
             CompressionType::None => block_info_bytes,
             CompressionType::Lzma => return Err(UnityError::Unimplemented),
             CompressionType::Lz4 | CompressionType::Lz4HC => lz4_flex::decompress(&block_info_bytes, uncompressed_size as usize)?,
-            CompressionType::Lzham => return Err(UnityError::Unimplemented),
+            CompressionType::LzInv => return Err(UnityError::Unimplemented),
         };
         let mut block_info_reader = Reader::new(&block_info_uncompressed_bytes, ByteOrder::Big);
         let _uncompressed_data_hash = block_info_reader.read_u8_slice(16)?;
@@ -236,12 +237,19 @@ impl AssetBundle {
                     let mut out_buf = std::io::Cursor::new(&mut result);
                     lzma_rs::lzma_decompress(&mut std::io::Cursor::new(in_buf_new), &mut out_buf)?;
                 }
-                CompressionType::Lz4 => todo!(),
-                CompressionType::Lz4HC | CompressionType::Lzham => {
+                CompressionType::Lz4 | CompressionType::Lz4HC | CompressionType::LzInv => {
                     let compressed_size = block_info.compressed_size;
                     let compressed_bytes = r.read_u8_slice(compressed_size as usize)?;
                     let uncompressed_size = block_info.uncompressed_size;
-                    let uncompressed_bytes = lz4_flex::decompress(compressed_bytes, uncompressed_size as usize)?;
+
+                    let uncompressed_bytes = if compress_type == CompressionType::LzInv {
+                        let mut buf = compressed_bytes.to_vec();
+                        lz4_inv::swap(&mut buf, uncompressed_size as usize)?;
+                        lz4_flex::decompress(&buf, uncompressed_size as usize).unwrap()
+                    } else {
+                        lz4_flex::decompress(compressed_bytes, uncompressed_size as usize)?
+                    };
+
                     result.extend_from_slice(&uncompressed_bytes);
                 }
             }
@@ -332,5 +340,75 @@ impl AssetBundle {
             ret.push(Asset::new(file.clone(), &node.path)?)
         }
         Ok(ret)
+    }
+}
+
+mod lz4_inv {
+    use crate::{UnityError, UnityResult};
+    pub fn swap(buf: &mut [u8], uncompressed_size: usize) -> UnityResult<()> {
+        let mut cmp_pos = 0;
+        let mut dec_pos = 0;
+        loop {
+            let (mut enc_cnt, mut lit_cnt) = swap_literal_token(buf, &mut cmp_pos)?;
+            lit_cnt = get_length(lit_cnt, buf, &mut cmp_pos)?;
+            cmp_pos += lit_cnt;
+            dec_pos += lit_cnt;
+
+            if cmp_pos >= buf.len() {
+                break;
+            }
+
+            swap_chunk_end(buf, &mut cmp_pos)?;
+            enc_cnt = get_length(enc_cnt, buf, &mut cmp_pos)? + 4;
+            dec_pos += enc_cnt;
+
+            if cmp_pos >= buf.len() || dec_pos >= uncompressed_size {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn swap_literal_token(buf: &mut [u8], idx: &mut usize) -> UnityResult<(usize, usize)> {
+        if *idx >= buf.len() {
+            return Err(UnityError::Eof);
+        }
+        let enc_count = (buf[*idx] >> 4) & 0xf;
+        let lit_count = buf[*idx] & 0xf;
+        buf[*idx] = enc_count + (lit_count << 4);
+        *idx += 1;
+        Ok((enc_count as usize, lit_count as usize))
+    }
+
+    fn swap_chunk_end(buf: &mut [u8], idx: &mut usize) -> UnityResult<usize> {
+        if *idx + 1 >= buf.len() {
+            return Err(UnityError::Eof);
+        }
+        let high = (buf[*idx] as u16) << 8;
+        *idx += 1;
+        let low = buf[*idx] as u16;
+        buf.swap(*idx - 1, *idx);
+        *idx += 1;
+        Ok((high | low) as usize)
+    }
+
+    fn get_length(mut length: usize, buf: &[u8], idx: &mut usize) -> UnityResult<usize> {
+        if length != 0xf {
+            return Ok(length);
+        }
+
+        let mut sum;
+        loop {
+            if *idx >= buf.len() {
+                return Err(UnityError::Eof);
+            }
+            sum = buf[*idx];
+            *idx += 1;
+            length += sum as usize;
+            if sum != 0xff {
+                break;
+            }
+        }
+        Ok(length)
     }
 }
