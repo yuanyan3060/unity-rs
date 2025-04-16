@@ -245,7 +245,7 @@ impl AssetBundle {
                     let uncompressed_bytes = if compress_type == CompressionType::LzInv {
                         let mut buf = compressed_bytes.to_vec();
                         lz4_inv::swap(&mut buf, uncompressed_size as usize)?;
-                        lz4_flex::decompress(&buf, uncompressed_size as usize).unwrap()
+                        lz4_flex::decompress(&buf, uncompressed_size as usize)?
                     } else {
                         lz4_flex::decompress(compressed_bytes, uncompressed_size as usize)?
                     };
