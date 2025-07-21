@@ -387,6 +387,10 @@ impl Texture2D {
             TextureFormat::RGBAFloat => Texture2DDecoder::decode(RGBAFloat, &size, &self.data, true).map_err(Into::into),
             TextureFormat::RGBAHalf => Texture2DDecoder::decode(RGBAHalf, &size, &self.data, true).map_err(Into::into),
             TextureFormat::YUY2 => Texture2DDecoder::decode(YUY2, &size, &self.data, true).map_err(Into::into),
+            TextureFormat::BC7 => {
+                texture2ddecoder::decode_bc7(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
             _ => Err(UnityError::Unimplemented),
         }
     }
