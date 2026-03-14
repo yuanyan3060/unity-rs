@@ -126,20 +126,34 @@ pub struct LoadedFile {
 }
 
 #[derive(Default)]
-pub struct LoadOutput {
+pub struct LoadOutput<T> {
+    pub metadata: T,
     pub serialized_files: Vec<SerializedFile>,
     pub loaded_files: Vec<LoadedFile>,
 }
 
 pub trait FileLoader {
+    type MetaData;
+
     fn name(&self) -> &str;
-    fn check(&self, data: &[u8]) -> bool;
-    fn load(&self, data: &[u8]) -> UnityResult<LoadOutput>;
+    fn load(&self, data: &[u8]) -> UnityResult<LoadOutput<Self::MetaData>>;
+}
+
+pub struct BundleFileMetaData {
+    pub head: BundleHead,
+    pub serialized_files: Vec<String>,
+    pub loaded_files: Vec<String>,
 }
 
 pub struct BundleFileLoader;
 
 impl BundleFileLoader {
+    pub fn check(&self, data: &[u8]) -> bool {
+        let mut r = Reader::new(data, ByteOrder::Big);
+        let signature = r.read_u8_list_util_null_with_limit(20);
+        matches!(signature.as_slice(), b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS")
+    }
+
     pub fn read_header(&self, r: &mut Reader) -> UnityResult<BundleHead> {
         let signature = r.read_string_util_null_with_limit(20);
         if !matches!(signature.as_bytes(), b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS") {
@@ -279,51 +293,53 @@ impl BundleFileLoader {
         Ok(files)
     }
 
-    pub fn load_assets(&self, files: &[LoadedFile]) -> UnityResult<LoadOutput> {
+    pub fn load_assets(&self, head: BundleHead, files: &[LoadedFile]) -> UnityResult<LoadOutput<BundleFileMetaData>> {
         let mut serialized_files = Vec::new();
         let mut loaded_files = Vec::new();
 
+        let mut metadata = BundleFileMetaData {
+            head,
+            serialized_files: Vec::new(),
+            loaded_files: Vec::new(),
+        };
         for file in files {
             if let Ok(FileType::AssetsFile) = check_file_type(&file.data) {
+                metadata.serialized_files.push(file.path.clone());
                 let serialized_file = SerializedFile::new(Arc::clone(&file.data), &file.path)?;
                 serialized_files.push(serialized_file);
             } else {
+                metadata.loaded_files.push(file.path.clone());
                 loaded_files.push(file.clone());
             }
         }
-        Ok(LoadOutput { serialized_files, loaded_files })
+        Ok(LoadOutput { metadata, serialized_files, loaded_files })
     }
 }
 
 impl FileLoader for BundleFileLoader {
+    type MetaData = BundleFileMetaData;
+
     fn name(&self) -> &str {
         "BundleFileLoader"
     }
 
-    fn check(&self, data: &[u8]) -> bool {
-        let mut r = Reader::new(data, ByteOrder::Big);
-        let signature = r.read_u8_list_util_null_with_limit(20);
-        println!("{:?}", signature);
-        matches!(signature.as_slice(), b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS")
-    }
-
-    fn load(&self, data: &[u8]) -> UnityResult<LoadOutput> {
+    fn load(&self, data: &[u8]) -> UnityResult<LoadOutput<Self::MetaData>> {
         if !self.check(data) {
             return Err(UnityError::FileTypeMissMatch("BundleFile".to_string()));
         }
 
         let mut r = Reader::new(data, ByteOrder::Big);
-        let header = self.read_header(&mut r)?;
-        if header.signature != "UnityFS" {
+        let head = self.read_header(&mut r)?;
+        if head.signature != "UnityFS" {
             return Err(UnityError::UnsupportFileType("UnityWeb or UnityRaw".into()));
         }
 
-        let (block_infos, nodes) = self.read_blocks_info_and_directory(&mut r, &header)?;
+        let (block_infos, nodes) = self.read_blocks_info_and_directory(&mut r, &head)?;
         let block_datas = self.read_blocks(&mut r, &block_infos)?;
         let files = self.read_files(&block_datas, &nodes)?;
-        let assets = self.load_assets(&files)?;
+        let output = self.load_assets(head, &files)?;
 
-        Ok(assets)
+        Ok(output)
     }
 }
 

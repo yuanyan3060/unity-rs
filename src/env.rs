@@ -36,8 +36,9 @@ impl<'a> Iterator for ObjectIter<'a> {
     }
 }
 
-pub struct Env {
-    pub file_loaders: Vec<Box<dyn FileLoader>>,
+pub struct Env<F: FileLoader = BundleFileLoader> {
+    pub file_loader: F,
+    pub metadata: Vec<F::MetaData>,
     pub serialized_files: Vec<SerializedFile>,
     pub cache: Arc<DashMap<i64, RgbaImage>>,
     pub loaded_files: Arc<DashMap<String, Arc<Vec<u8>>>>,
@@ -58,28 +59,29 @@ impl Debug for Env {
 impl Env {
     pub fn new() -> Self {
         Self {
-            file_loaders: vec![Box::new(BundleFileLoader)],
+            file_loader: BundleFileLoader,
+            metadata: Vec::new(),
             serialized_files: Vec::new(),
             cache: Arc::new(DashMap::new()),
             loaded_files: Arc::new(DashMap::new()),
         }
     }
 
-    pub fn add_loader(&mut self, loader: impl FileLoader + 'static) {
-        self.file_loaders.push(Box::new(loader));
+    pub fn with_loader<F: FileLoader>(self, file_loader: F) -> Env<F> {
+        Env {
+            file_loader,
+            metadata: Vec::new(),
+            serialized_files: self.serialized_files,
+            cache: self.cache,
+            loaded_files: self.loaded_files,
+        }
     }
 
     pub fn load_from_slice(&mut self, src: &[u8]) -> UnityResult<()> {
-        for file_loader in &self.file_loaders {
-            if !file_loader.check(src) {
-                continue;
-            }
-
-            let assets = file_loader.load(src)?;
-            self.serialized_files.extend(assets.serialized_files);
-            for loaded_file in assets.loaded_files {
-                self.loaded_files.insert(loaded_file.name, loaded_file.data);
-            }
+        let output = self.file_loader.load(src)?;
+        self.serialized_files.extend(output.serialized_files);
+        for loaded_file in output.loaded_files {
+            self.loaded_files.insert(loaded_file.name, loaded_file.data);
         }
 
         Ok(())
