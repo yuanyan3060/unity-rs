@@ -103,7 +103,7 @@ impl Asset {
         }
         if ret.header.version >= 7 {
             ret.unity_version = r.read_string_util_null()?;
-            ret.unity_version = "2022.3.21f1".to_string();
+            //ret.unity_version = "2022.3.21f1".to_string();
             let mut s = String::new();
             for i in ret.unity_version.chars() {
                 if i.is_ascii_alphabetic() {
