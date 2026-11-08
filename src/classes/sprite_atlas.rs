@@ -29,7 +29,7 @@ impl<'a> SpriteAtlasData<'a> {
         let atlas_rect_offset = if version[0] > 2017 || (version[0] == 2017 && version[1] >= 2) { r.read_vector2()? } else { Vector2::default() };
         let uv_transform = r.read_vector4()?;
         let downscale_multiplier = r.read_f32()?;
-        let settings_raw = SpriteSettings::load(&object.info, r)?;
+        let settings_raw = SpriteSettings::load(object.info, r)?;
         let mut secondary_textures = Vec::new();
         if version[0] > 2020 || (version[0] == 2020 && version[1] >= 2) {
             for _ in 0..r.read_i32()? {
@@ -81,5 +81,9 @@ impl<'a> FromObject<'a> for SpriteAtlas<'a> {
             render_data_map,
             is_variant,
         })
+    }
+
+    fn class() -> super::ClassID {
+        super::ClassID::SpriteAtlas
     }
 }

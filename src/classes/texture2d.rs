@@ -8,8 +8,10 @@ use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use num_enum::FromPrimitive;
+
+use std::fmt::Display;
 use std::sync::Arc;
-use texture_decoder::implements::{Alpha8, RFloat, RGB9e5Float, RGBAFloat, RGBAHalf, RGFloat, RGHalf, RHalf, ARGB32, ARGB4444, BGRA32, R16, R8, RG16, RGB24, RGB565, RGBA32, RGBA4444, YUY2};
+use texture_decoder::implements::{Alpha8, RFloat, RGB9e5Float, RGBAFloat, RGBAHalf, RGFloat, RGHalf, RHalf, ARGB32, ARGB4444, BGRA32, DXT1, DXT5, R16, R8, RG16, RGB24, RGB565, RGBA32, RGBA4444, YUY2};
 use texture_decoder::{ImageSize, Texture2DDecoder};
 
 #[allow(non_camel_case_types, non_upper_case_globals)]
@@ -84,7 +86,13 @@ pub enum TextureFormat {
     ASTC_HDR_12x12,
 }
 
-#[derive(Default)]
+impl Display for TextureFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Default, Debug)]
 pub struct GLTextureSettings {
     filter_mode: i32,
     aniso: i32,
@@ -111,11 +119,11 @@ impl GLTextureSettings {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct StreamingInfo {
-    offset: u64,
-    size: u32,
-    path: String,
+    pub offset: u64,
+    pub size: u32,
+    pub path: String,
 }
 
 impl StreamingInfo {
@@ -132,7 +140,7 @@ impl StreamingInfo {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Texture2D {
     cache: Arc<DashMap<i64, RgbaImage>>,
     pub path_id: i64,
@@ -156,7 +164,7 @@ pub struct Texture2D {
     pub data: Vec<u8>,
 }
 
-impl<'a> FromObject<'a> for Texture2D {
+impl FromObject<'_> for Texture2D {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let mut result = Self {
@@ -197,6 +205,10 @@ impl<'a> FromObject<'a> for Texture2D {
         if version[0] > 2019 || (version[0] == 2019 && version[1] >= 3) {
             let _is_ignore_master_texture_limit = r.read_bool()?;
         }
+        if version[0] >= 2022 && version[1] >= 2 {
+            r.align(4)?;
+            let _mipmap_limit_group_name = r.read_aligned_string();
+        }
         if version[0] >= 3 && (version[0] < 5 || (version[0] == 5 && version[1] <= 4)) {
             let _read_allowed = r.read_bool()?;
         }
@@ -213,7 +225,7 @@ impl<'a> FromObject<'a> for Texture2D {
         }
         result.image_count = r.read_i32()?;
         result.texture_dimension = r.read_i32()?;
-        result.texture_setting = GLTextureSettings::load(&object.info, &mut r)?;
+        result.texture_setting = GLTextureSettings::load(object.info, &mut r)?;
         if version[0] >= 3 {
             result.light_map_format = r.read_i32()?;
         }
@@ -227,34 +239,32 @@ impl<'a> FromObject<'a> for Texture2D {
         }
         result.size = r.read_i32()?;
         if result.size == 0 && ((version[0] == 5 && version[1] >= 3) || version[0] > 5) {
-            result.stream_info = StreamingInfo::load(&object.info, &mut r)?;
+            result.stream_info = StreamingInfo::load(object.info, &mut r)?;
         }
         if result.stream_info.path.is_empty() {
             result.data = r.read_u8_list(result.size as usize)?;
         } else {
-            let path = result.stream_info.path.split('/').last().ok_or(UnityError::InvalidValue)?;
-            for i in 0..object.bundle.nodes.len() {
-                let node = &object.bundle.nodes[i];
-                if node.path != path {
-                    continue;
-                }
-                let file = &object.bundle.files[i];
-                let mut r = Reader::new(file.as_slice(), ByteOrder::Big);
+            let name = result.stream_info.path.split('/').next_back().ok_or(UnityError::InvalidValue)?;
+            if let Some(buf) = object.env.get_loaded_file(name) {
+                let mut r = Reader::new(buf.as_slice(), ByteOrder::Big);
                 r.set_offset(result.stream_info.offset as usize)?;
                 result.data = r.read_u8_list(result.stream_info.size as usize)?;
             }
         }
         Ok(result)
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Texture2D
+    }
 }
 impl Texture2D {
-    pub fn decode_image(&self) -> UnityResult<Ref<i64, RgbaImage>> {
+    pub fn decode_image(&self) -> UnityResult<Ref<'_, i64, RgbaImage>> {
         if let Some(img) = self.cache.get(&self.path_id) {
             return Ok(img);
         }
         let img = self.decode_image_without_cache()?;
-        self.cache.insert(self.path_id, img);
-        return Ok(self.cache.get(&self.path_id).unwrap());
+        Ok(self.cache.entry(self.path_id).insert(img).downgrade())
     }
 
     pub fn decode_image_without_cache(&self) -> UnityResult<RgbaImage> {
@@ -388,7 +398,16 @@ impl Texture2D {
             TextureFormat::RGBAFloat => Texture2DDecoder::decode(RGBAFloat, &size, &self.data, true).map_err(Into::into),
             TextureFormat::RGBAHalf => Texture2DDecoder::decode(RGBAHalf, &size, &self.data, true).map_err(Into::into),
             TextureFormat::YUY2 => Texture2DDecoder::decode(YUY2, &size, &self.data, true).map_err(Into::into),
-            _ => Err(UnityError::Unimplemented),
+            TextureFormat::BC7 => {
+                texture2ddecoder::decode_bc7(&self.data, width as usize, height as usize, image)?;
+                Ok(result)
+            }
+            TextureFormat::DXT5 => DXT5::decode(&self.data, width as u32, height as u32).map_err(|_| UnityError::InvalidValue),
+            TextureFormat::DXT1 => DXT1::decode(&self.data, width as u32, height as u32).map_err(UnityError::DecodeImage),
+            _ => {
+                println!("{:?}", format);
+                Err(UnityError::Unimplemented)
+            }
         }
     }
 }

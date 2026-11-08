@@ -96,7 +96,7 @@ pub struct AudioClip {
     pub data: Vec<u8>,
 }
 
-impl<'a> FromObject<'a> for AudioClip {
+impl FromObject<'_> for AudioClip {
     fn load(object: &Object) -> UnityResult<Self> {
         let mut r = object.info.get_reader();
         let name = r.read_aligned_string()?;
@@ -152,18 +152,14 @@ impl<'a> FromObject<'a> for AudioClip {
         let data = match (source.as_deref(), offset) {
             (Some(source), Some(offset)) => {
                 let mut data = None;
-                let path = source.split('/').last().ok_or(UnityError::InvalidValue)?;
-                for i in 0..object.bundle.nodes.len() {
-                    let node = &object.bundle.nodes[i];
-                    if node.path != path {
-                        continue;
-                    }
-                    let file = &object.bundle.files[i];
-                    let mut r = Reader::new(file.as_slice(), ByteOrder::Big);
+                let name = source.split('/').next_back().ok_or(UnityError::InvalidValue)?;
+
+                if let Some(buf) = object.env.get_loaded_file(name) {
+                    let mut r = Reader::new(buf.as_slice(), ByteOrder::Big);
                     r.set_offset(offset as usize)?;
                     data = Some(r.read_u8_list(size as usize)?);
-                    break;
                 }
+
                 match data {
                     Some(data) => data,
                     None => return Err(UnityError::CustomError("can not find resource".to_string())),
@@ -172,6 +168,10 @@ impl<'a> FromObject<'a> for AudioClip {
             _ => r.read_u8_list(size as usize)?,
         };
         Ok(Self { name, meta, source, offset, size, data })
+    }
+
+    fn class() -> super::ClassID {
+        super::ClassID::AudioClip
     }
 }
 

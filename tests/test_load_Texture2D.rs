@@ -1,5 +1,5 @@
 use unity_rs::classes::Texture2D;
-use unity_rs::Env;
+use unity_rs::{object, Env};
 
 #[test]
 fn test_load_texture2d() {
@@ -15,5 +15,11 @@ fn test_load_texture2d() {
         }
         let s: Texture2D = obj.read().expect("Read Failure");
         s.decode_image().expect("Decode Failure").save(format!("./target/tests/Texture2D {}.png", s.name)).expect("Save Failure");
+        let nodes = &obj.info.serialized_type.type_tree.nodes;
+        let mut reader = obj.info.get_reader();
+        let mut deserializer = object::Deserializer::new(nodes, &mut reader);
+        let file = std::fs::File::create(format!("./target/tests/Texture2D {}.json", s.name)).expect("Open Json Failure");
+        let mut serializer = serde_json::Serializer::pretty(file);
+        serde_transcode::transcode(&mut deserializer, &mut serializer).expect("Transcode Failure");
     }
 }

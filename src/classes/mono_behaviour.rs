@@ -8,10 +8,10 @@ use super::mono_script::MonoScript;
 use super::pptr::PPtr;
 
 pub struct MonoBehaviour<'a> {
-    pub game_object: PPtr<'a, GameObject>,
+    pub game_object: PPtr<'a, GameObject<'a>>,
     pub enable: bool,
     pub script: PPtr<'a, MonoScript>,
-    pub name: String
+    pub name: String,
 }
 
 impl<'a> FromObject<'a> for MonoBehaviour<'a> {
@@ -23,5 +23,9 @@ impl<'a> FromObject<'a> for MonoBehaviour<'a> {
         let script = PPtr::load(object, &mut r)?;
         let name = r.read_aligned_string()?;
         Ok(Self { game_object, enable, script, name })
+    }
+
+    fn class() -> super::ClassID {
+        super::ClassID::MonoBehaviour
     }
 }

@@ -10,4 +10,8 @@ pub enum DecodeImageError {
     ImageDecode,
     #[error("expect {0} times pixel decode, but need {1} times")]
     SizeNotMatch(usize, usize),
+    #[error("invalid data")]
+    InvalidData,
+    #[error("unsupported format: {0}")]
+    UnsupportedFormat(String),
 }

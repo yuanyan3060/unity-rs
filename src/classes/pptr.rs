@@ -27,20 +27,21 @@ impl<'a, T: FromObject<'a>> PPtr<'a, T> {
         if self.path_id == 0 {
             return None;
         }
-        for bundle in &self.env.bundles {
-            for asset in &bundle.assets {
-                for info in &asset.objects_info {
-                    if info.path_id == self.path_id {
-                        let obj = Object {
-                            env: self.env,
-                            bundle,
-                            asset,
-                            info: info.clone(),
-                            cache: self.env.cache.clone(),
-                        };
-                        return Some(obj);
-                    }
+        for asset in &self.env.serialized_files {
+            for info in &asset.objects_info {
+                if info.path_id != self.path_id {
+                    continue;
                 }
+                if info.class() != T::class() {
+                    continue;
+                }
+                let obj = Object {
+                    env: self.env,
+                    asset,
+                    info,
+                    cache: self.env.cache.clone(),
+                };
+                return Some(obj);
             }
         }
         None

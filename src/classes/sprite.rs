@@ -100,16 +100,16 @@ impl<'a> SpriteRenderData<'a> {
         if version[0] > 5 || (version[0] == 5 && version[1] >= 6) {
             let size = r.read_i32()?;
             for _ in 0..size {
-                result.sub_meshes.push(SubMesh::load(&object.info, r)?)
+                result.sub_meshes.push(SubMesh::load(object.info, r)?)
             }
             let size = r.read_i32()?;
             result.index_buffer = r.read_u8_list(size as usize)?;
             r.align(4)?;
-            result.vertex_data = VertexData::load(&object.info, r)?;
+            result.vertex_data = VertexData::load(object.info, r)?;
         } else {
             let size = r.read_i32()?;
             for _ in 0..size {
-                result.vertices.push(SpriteVertex::load(&object.info, r)?)
+                result.vertices.push(SpriteVertex::load(object.info, r)?)
             }
             let size = r.read_i32()?;
             result.indices = r.read_u16_list(size as usize)?;
@@ -122,7 +122,7 @@ impl<'a> SpriteRenderData<'a> {
                 let size = r.read_i32()? as usize;
                 result.source_skin = Vec::with_capacity(size);
                 for _ in 0..size {
-                    result.source_skin.push(BoneWeights4::load(&object.info, r)?);
+                    result.source_skin.push(BoneWeights4::load(object.info, r)?);
                 }
             }
         }
@@ -131,7 +131,7 @@ impl<'a> SpriteRenderData<'a> {
         if version[0] > 5 || (version[0] == 5 && version[1] >= 6) {
             result.atlas_rect_offset = r.read_vector2()?;
         }
-        result.setting_raw = SpriteSettings::load(&object.info, r)?;
+        result.setting_raw = SpriteSettings::load(object.info, r)?;
         if version[0] > 4 || (version[0] == 4 && version[1] >= 5) {
             result.uv_transform = r.read_vector4()?;
         }
@@ -300,7 +300,7 @@ impl<'a> FromObject<'a> for Sprite<'a> {
             border = Some(r.read_vector4()?);
         }
         let pixels_to_units: f32 = r.read_f32()?;
-        if version[0] > 5 || (version[0] == 5 && version[1] > 4) || (version[0] == 5 && version[1] == 4 && version[2] >= 2) || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type == "p" && version[3] >= 3) {
+        if version[0] > 5 || (version[0] == 5 && version[1] > 4) || (version[0] == 5 && version[1] == 4 && version[2] >= 2) || (version[0] == 5 && version[1] == 4 && version[2] == 1 && object.info.build_type.is_patch() && version[3] >= 3) {
             pivot = r.read_vector2()?;
         }
         let extrude: u8 = r.read_u32()? as u8;
@@ -333,9 +333,13 @@ impl<'a> FromObject<'a> for Sprite<'a> {
             rd,
         })
     }
+
+    fn class() -> super::ClassID {
+        super::ClassID::Sprite
+    }
 }
 
-impl<'a> Sprite<'a> {
+impl Sprite<'_> {
     pub fn decode_image(&self) -> UnityResult<RgbaImage> {
         if let Some(sprite_atlas) = self.sprite_atlas.as_ref().and_then(|x| x.get_obj()) {
             if let Some(sprite_atlas_data) = sprite_atlas.read::<SpriteAtlas>()?.render_data_map.get(&self.render_data_key) {

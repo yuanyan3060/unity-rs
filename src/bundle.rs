@@ -1,6 +1,7 @@
-use crate::asset::Asset;
+use crate::asset::SerializedFile;
 use crate::error::{UnityError, UnityResult};
 use crate::reader::{ByteOrder, Reader};
+use std::fmt::Debug;
 use std::sync::Arc;
 
 #[derive(PartialEq)]
@@ -46,12 +47,13 @@ pub enum StorageBlockFlags {
     Streamed = 0x40,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum CompressionType {
     None,
     Lzma,
     Lz4,
     Lz4HC,
-    Lzham,
+    LzInv,
 }
 
 impl CompressionType {
@@ -61,7 +63,7 @@ impl CompressionType {
             1 => Self::Lzma,
             2 => Self::Lz4,
             3 => Self::Lz4HC,
-            4 => Self::Lzham,
+            4 => Self::LzInv,
             _ => return Err(UnityError::InvalidValue),
         };
         Ok(ret)
@@ -101,12 +103,14 @@ impl BundleHead {
     }
 }
 
+#[derive(Debug)]
 pub struct StorageBlock {
-    compressed_size: u32,
-    uncompressed_size: u32,
-    flags: u16,
+    pub compressed_size: u32,
+    pub uncompressed_size: u32,
+    pub flags: u16,
 }
 
+#[derive(Debug)]
 pub struct Node {
     pub offset: i64,
     pub size: i64,
@@ -114,97 +118,142 @@ pub struct Node {
     pub path: String,
 }
 
-pub struct AssetBundle {
-    header: BundleHead,
-    block_infos: Vec<StorageBlock>,
-    pub nodes: Vec<Node>,
-    pub files: Vec<Arc<Vec<u8>>>,
-    pub assets: Vec<Asset>,
+#[derive(Debug, Clone)]
+pub struct LoadedFile {
+    pub path: String,
+    pub name: String,
+    pub data: Arc<Vec<u8>>,
 }
 
-impl AssetBundle {
-    pub fn from_slice(src: &[u8]) -> UnityResult<Self> {
-        let mut r = Reader::new(src, ByteOrder::Big);
-        let signature = r.read_string_util_null()?;
+#[derive(Default)]
+pub struct LoadOutput<T> {
+    pub metadata: T,
+    pub serialized_files: Vec<SerializedFile>,
+    pub loaded_files: Vec<LoadedFile>,
+}
+
+pub trait FileLoader {
+    type MetaData;
+
+    fn name(&self) -> &str;
+    fn load(&self, data: &[u8]) -> UnityResult<LoadOutput<Self::MetaData>>;
+}
+
+pub struct BundleFileMetaData {
+    pub head: BundleHead,
+    pub serialized_files: Vec<String>,
+    pub loaded_files: Vec<String>,
+}
+
+pub struct BundleFileLoader;
+
+impl BundleFileLoader {
+    pub fn check(&self, data: &[u8]) -> bool {
+        let mut r = Reader::new(data, ByteOrder::Big);
+        let signature = r.read_u8_list_util_null_with_limit(20);
+        matches!(signature.as_slice(), b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS")
+    }
+
+    pub fn read_header(&self, r: &mut Reader) -> UnityResult<BundleHead> {
+        let signature = r.read_string_util_null_with_limit(20);
+        if !matches!(signature.as_bytes(), b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS") {
+            return Err(UnityError::FileTypeMissMatch("BundleFile".to_string()));
+        }
+
         let version = r.read_u32()?;
         let unity_version = r.read_string_util_null()?;
         let unity_revision = r.read_string_util_null()?;
-        //let unity_revision = "2022.3.21f1".to_string();
-        let mut ret = Self {
-            header: BundleHead {
-                signature,
-                version,
-                unity_version,
-                unity_revision,
-                size: 0,
-                compressed_blocks_info_size: 0,
-                uncompressed_blocks_info_size: 0,
-                flags: 0,
-            },
-            block_infos: Vec::new(),
-            nodes: Vec::new(),
-            files: Vec::new(),
-            assets: Vec::new(),
-        };
-        match ret.header.signature.as_str() {
-            "UnityFS" => {
-                ret.read_header(&mut r)?;
-                ret.read_blocks_info_and_directory(&mut r)?;
-                let blocks_data = ret.read_blocks(&mut r)?;
-                ret.read_files(&blocks_data)?;
-            }
-            "UnityWeb" | "UnityRaw" => return Err(UnityError::UnsupportFileType("UnityWeb or UnityRaw".into())),
+//         //let unity_revision = "2022.3.21f1".to_string();
+//         let mut ret = Self {
+//             header: BundleHead {
+//                 signature,
+//                 version,
+//                 unity_version,
+//                 unity_revision,
+//                 size: 0,
+//                 compressed_blocks_info_size: 0,
+//                 uncompressed_blocks_info_size: 0,
+//                 flags: 0,
+//             },
+//             block_infos: Vec::new(),
+//             nodes: Vec::new(),
+//             files: Vec::new(),
+//             assets: Vec::new(),
+//         };
+//         match ret.header.signature.as_str() {
+//             "UnityFS" => {
+//                 ret.read_header(&mut r)?;
+//                 ret.read_blocks_info_and_directory(&mut r)?;
+//                 let blocks_data = ret.read_blocks(&mut r)?;
+//                 ret.read_files(&blocks_data)?;
+//             }
+//             "UnityWeb" | "UnityRaw" => return Err(UnityError::UnsupportFileType("UnityWeb or UnityRaw".into())),
 
-            _ => return Err(UnityError::UnsupportFileType(ret.header.signature)),
-        }
-        ret.assets = ret.load_assets()?;
-        Ok(ret)
-    }
+//             _ => return Err(UnityError::UnsupportFileType(ret.header.signature)),
+//         }
+//         ret.assets = ret.load_assets()?;
+//         Ok(ret)
+//     }
 
-    fn read_header(&mut self, r: &mut Reader) -> UnityResult<()> {
-        self.header.size = r.read_i64()? as u64;
-        self.header.compressed_blocks_info_size = r.read_u32()?;
-        self.header.uncompressed_blocks_info_size = r.read_u32()?;
-        self.header.flags = r.read_u32()?;
-        if self.header.signature != "UnityFS" {
+        let size = r.read_i64()? as u64;
+        let compressed_blocks_info_size = r.read_u32()?;
+        let uncompressed_blocks_info_size = r.read_u32()?;
+        let flags = r.read_u32()?;
+        if signature != "UnityFS" {
             r.read_u8()?;
         }
-        Ok(())
+        Ok(BundleHead {
+            signature,
+            version,
+            unity_version,
+            unity_revision,
+            size,
+            compressed_blocks_info_size,
+            uncompressed_blocks_info_size,
+            flags,
+        })
     }
 
-    fn read_blocks_info_and_directory(&mut self, r: &mut Reader) -> UnityResult<()> {
+    pub fn read_blocks_info_and_directory(&self, r: &mut Reader, header: &BundleHead) -> UnityResult<(Vec<StorageBlock>, Vec<Node>)> {
         let block_info_bytes: Vec<u8>;
-        if self.header.version >= 7 {
+        if header.version >= 7 {
             r.align(16)?;
         }
         let offset = r.get_offset();
-        if self.header.flags & ArchiveFlags::BlocksInfoAtTheEnd as u32 != 0 {
-            r.set_offset(r.len() - self.header.compressed_blocks_info_size as usize)?;
-            block_info_bytes = r.read_u8_list(self.header.compressed_blocks_info_size as usize)?;
+        if header.flags & ArchiveFlags::BlocksInfoAtTheEnd as u32 != 0 {
+            r.set_offset(r.len() - header.compressed_blocks_info_size as usize)?;
+            block_info_bytes = r.read_u8_list(header.compressed_blocks_info_size as usize)?;
             r.set_offset(offset)?;
         } else {
-            block_info_bytes = r.read_u8_list(self.header.compressed_blocks_info_size as usize)?;
+            block_info_bytes = r.read_u8_list(header.compressed_blocks_info_size as usize)?;
         }
-        let uncompressed_size = self.header.uncompressed_blocks_info_size;
-        let compressed_type = CompressionType::from_magic_num(self.header.flags & ArchiveFlags::CompressionTypeMask as u32)?;
+        let uncompressed_size = header.uncompressed_blocks_info_size;
+        let compressed_type = CompressionType::from_magic_num(header.flags & ArchiveFlags::CompressionTypeMask as u32)?;
         let block_info_uncompressed_bytes = match compressed_type {
             CompressionType::None => block_info_bytes,
             CompressionType::Lzma => return Err(UnityError::Unimplemented),
             CompressionType::Lz4 | CompressionType::Lz4HC => lz4_flex::decompress(&block_info_bytes, uncompressed_size as usize)?,
-            CompressionType::Lzham => return Err(UnityError::Unimplemented),
+            CompressionType::LzInv => return Err(UnityError::Unimplemented),
         };
         let mut block_info_reader = Reader::new(&block_info_uncompressed_bytes, ByteOrder::Big);
         let _uncompressed_data_hash = block_info_reader.read_u8_slice(16)?;
         let block_info_count = block_info_reader.read_i32()?;
+
+        let mut block_infos = Vec::new();
+
         for _ in 0..block_info_count {
             let s = StorageBlock {
                 uncompressed_size: block_info_reader.read_u32()?,
                 compressed_size: block_info_reader.read_u32()?,
                 flags: block_info_reader.read_u16()?,
             };
-            self.block_infos.push(s)
+            block_infos.push(s)
         }
+
         let node_count = block_info_reader.read_i32()?;
+
+        let mut nodes = Vec::new();
+
         for _ in 0..node_count {
             let n = Node {
                 offset: block_info_reader.read_i64()?,
@@ -212,17 +261,17 @@ impl AssetBundle {
                 flags: block_info_reader.read_u32()?,
                 path: block_info_reader.read_string_util_null()?,
             };
-            self.nodes.push(n)
+            nodes.push(n)
         }
-        if self.header.flags & ArchiveFlags::BlockInfoNeedPaddingAtStart as u32 != 0 {
+        if header.flags & ArchiveFlags::BlockInfoNeedPaddingAtStart as u32 != 0 {
             r.align(16)?;
         }
-        Ok(())
+        Ok((block_infos, nodes))
     }
 
-    fn read_blocks(&self, r: &mut Reader) -> UnityResult<Vec<u8>> {
+    pub fn read_blocks(&self, r: &mut Reader, block_infos: &[StorageBlock]) -> UnityResult<Vec<u8>> {
         let mut result = Vec::new();
-        for block_info in &self.block_infos {
+        for block_info in block_infos {
             let compress_type = CompressionType::from_magic_num((block_info.flags & StorageBlockFlags::CompressionTypeMask as u16) as u32)?;
             match compress_type {
                 CompressionType::None => {
@@ -237,12 +286,19 @@ impl AssetBundle {
                     let mut out_buf = std::io::Cursor::new(&mut result);
                     lzma_rs::lzma_decompress(&mut std::io::Cursor::new(in_buf_new), &mut out_buf)?;
                 }
-                CompressionType::Lz4 => todo!(),
-                CompressionType::Lz4HC | CompressionType::Lzham => {
+                CompressionType::Lz4 | CompressionType::Lz4HC | CompressionType::LzInv => {
                     let compressed_size = block_info.compressed_size;
                     let compressed_bytes = r.read_u8_slice(compressed_size as usize)?;
                     let uncompressed_size = block_info.uncompressed_size;
-                    let uncompressed_bytes = lz4_flex::decompress(compressed_bytes, uncompressed_size as usize)?;
+
+                    let uncompressed_bytes = if compress_type == CompressionType::LzInv {
+                        let mut buf = compressed_bytes.to_vec();
+                        lz4_inv::swap(&mut buf, uncompressed_size as usize)?;
+                        lz4_flex::decompress(&buf, uncompressed_size as usize)?
+                    } else {
+                        lz4_flex::decompress(compressed_bytes, uncompressed_size as usize)?
+                    };
+
                     result.extend_from_slice(&uncompressed_bytes);
                 }
             }
@@ -250,88 +306,203 @@ impl AssetBundle {
         Ok(result)
     }
 
-    fn read_files(&mut self, data: &[u8]) -> UnityResult<()> {
+    pub fn read_files(&self, data: &[u8], nodes: &[Node]) -> UnityResult<Vec<LoadedFile>> {
         let mut r = Reader::new(data, ByteOrder::Big);
-        for node in &self.nodes {
+
+        let mut files = Vec::with_capacity(nodes.len());
+        for node in nodes {
             r.set_offset(node.offset as usize)?;
-            let file = r.read_u8_list(node.size as usize)?;
-            self.files.push(Arc::new(file))
+            let data = r.read_u8_list(node.size as usize)?;
+
+            let name = std::path::Path::file_name(node.path.as_ref()).map(|x| x.to_string_lossy().to_string()).unwrap_or_else(|| node.path.to_string());
+            files.push(LoadedFile {
+                path: node.path.to_string(),
+                name,
+                data: Arc::from(data),
+            })
+        }
+        Ok(files)
+    }
+
+    pub fn load_assets(&self, head: BundleHead, files: &[LoadedFile]) -> UnityResult<LoadOutput<BundleFileMetaData>> {
+        let mut serialized_files = Vec::new();
+        let mut loaded_files = Vec::new();
+
+        let mut metadata = BundleFileMetaData {
+            head,
+            serialized_files: Vec::new(),
+            loaded_files: Vec::new(),
+        };
+        for file in files {
+            if let Ok(FileType::AssetsFile) = check_file_type(&file.data) {
+                metadata.serialized_files.push(file.path.clone());
+                let serialized_file = SerializedFile::new(Arc::clone(&file.data), &file.path)?;
+                serialized_files.push(serialized_file);
+            } else {
+                metadata.loaded_files.push(file.path.clone());
+                loaded_files.push(file.clone());
+            }
+        }
+        Ok(LoadOutput { metadata, serialized_files, loaded_files })
+    }
+}
+
+impl FileLoader for BundleFileLoader {
+    type MetaData = BundleFileMetaData;
+
+    fn name(&self) -> &str {
+        "BundleFileLoader"
+    }
+
+    fn load(&self, data: &[u8]) -> UnityResult<LoadOutput<Self::MetaData>> {
+        if !self.check(data) {
+            return Err(UnityError::FileTypeMissMatch("BundleFile".to_string()));
+        }
+
+        let mut r = Reader::new(data, ByteOrder::Big);
+        let head = self.read_header(&mut r)?;
+        if head.signature != "UnityFS" {
+            return Err(UnityError::UnsupportFileType("UnityWeb or UnityRaw".into()));
+        }
+
+        let (block_infos, nodes) = self.read_blocks_info_and_directory(&mut r, &head)?;
+        let block_datas = self.read_blocks(&mut r, &block_infos)?;
+        let files = self.read_files(&block_datas, &nodes)?;
+        let output = self.load_assets(head, &files)?;
+
+        Ok(output)
+    }
+}
+
+pub fn check_file_type(data: &[u8]) -> UnityResult<FileType> {
+    fn is_serialized_file(r: &mut Reader) -> UnityResult<bool> {
+        if r.len() < 20 {
+            return Ok(false);
+        }
+        let mut _metadata_size = r.read_u32()?;
+        let mut file_size = r.read_u32()? as i64;
+        let version = r.read_u32()?;
+        let mut data_offset = r.read_u32()? as i64;
+        let _endian = r.read_u8()?;
+        let _reserved = r.read_u8_array::<3>()?;
+        if version >= 22 {
+            if r.len() < 48 {
+                return Ok(false);
+            }
+            _metadata_size = r.read_u32()?;
+            file_size = r.read_i64()?;
+            data_offset = r.read_i64()?;
+        }
+        if r.len() != file_size as usize {
+            return Ok(false);
+        }
+        if data_offset > file_size {
+            return Ok(false);
+        }
+        Ok(true)
+    }
+    if data.len() < 20 {
+        return Ok(FileType::ResourceFile);
+    }
+    let gzip_magic = [0x1f, 0x8b];
+    let brotli_magic = [0x62, 0x72, 0x6F, 0x74, 0x6C, 0x69];
+    let zip_magic = [0x50, 0x4B, 0x03, 0x04];
+    let zip_spanned_magic = [0x50, 0x4B, 0x07, 0x08];
+    let mut r = Reader::new(data, ByteOrder::Big);
+    let signature = r.read_u8_list_util_null_with_limit(20);
+    match signature.as_slice() {
+        b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS" => Ok(FileType::BundleFile),
+        b"UnityWebData1.0" => Ok(FileType::WebFile),
+        _ => {
+            let magic: [u8; 2] = r.read_u8_array()?;
+            r.set_offset(0)?;
+            if magic == gzip_magic {
+                return Ok(FileType::GZipFile);
+            }
+            r.set_offset(0x20)?;
+            let magic: [u8; 6] = r.read_u8_array()?;
+            r.set_offset(0)?;
+            if magic == brotli_magic {
+                return Ok(FileType::BrotliFile);
+            }
+            if is_serialized_file(&mut r)? {
+                return Ok(FileType::AssetsFile);
+            }
+            let magic: [u8; 4] = r.read_u8_array()?;
+            r.set_offset(0)?;
+            if magic == zip_magic || magic == zip_spanned_magic {
+                return Ok(FileType::ZipFile);
+            }
+            Ok(FileType::ResourceFile)
+        }
+    }
+}
+mod lz4_inv {
+    use crate::{UnityError, UnityResult};
+    pub fn swap(buf: &mut [u8], uncompressed_size: usize) -> UnityResult<()> {
+        let mut cmp_pos = 0;
+        let mut dec_pos = 0;
+        loop {
+            let (mut enc_cnt, mut lit_cnt) = swap_literal_token(buf, &mut cmp_pos)?;
+            lit_cnt = get_length(lit_cnt, buf, &mut cmp_pos)?;
+            cmp_pos += lit_cnt;
+            dec_pos += lit_cnt;
+
+            if cmp_pos >= buf.len() {
+                break;
+            }
+
+            swap_chunk_end(buf, &mut cmp_pos)?;
+            enc_cnt = get_length(enc_cnt, buf, &mut cmp_pos)? + 4;
+            dec_pos += enc_cnt;
+
+            if cmp_pos >= buf.len() || dec_pos >= uncompressed_size {
+                break;
+            }
         }
         Ok(())
     }
 
-    pub(super) fn check_file_type(data: &[u8]) -> UnityResult<FileType> {
-        fn is_serialized_file(r: &mut Reader) -> UnityResult<bool> {
-            if r.len() < 20 {
-                return Ok(false);
-            }
-            let mut _metadata_size = r.read_u32()?;
-            let mut file_size = r.read_u32()? as i64;
-            let version = r.read_u32()?;
-            let mut data_offset = r.read_u32()? as i64;
-            let _endian = r.read_u8()?;
-            let _reserved = r.read_u8_array::<3>()?;
-            if version >= 22 {
-                if r.len() < 48 {
-                    return Ok(false);
-                }
-                _metadata_size = r.read_u32()?;
-                file_size = r.read_i64()?;
-                data_offset = r.read_i64()?;
-            }
-            if r.len() != file_size as usize {
-                return Ok(false);
-            }
-            if data_offset > file_size {
-                return Ok(false);
-            }
-            Ok(true)
+    fn swap_literal_token(buf: &mut [u8], idx: &mut usize) -> UnityResult<(usize, usize)> {
+        if *idx >= buf.len() {
+            return Err(UnityError::Eof);
         }
-        if data.len() < 20 {
-            return Ok(FileType::ResourceFile);
-        }
-        let gzip_magic = [0x1f, 0x8b];
-        let brotli_magic = [0x62, 0x72, 0x6F, 0x74, 0x6C, 0x69];
-        let zip_magic = [0x50, 0x4B, 0x03, 0x04];
-        let zip_spanned_magic = [0x50, 0x4B, 0x07, 0x08];
-        let mut r = Reader::new(data, ByteOrder::Big);
-        let signature = r.read_u8_list_util_null_with_limit(20)?;
-        match signature.as_slice() {
-            b"UnityWeb" | b"UnityRaw" | b"UnityArchive" | b"UnityFS" => Ok(FileType::BundleFile),
-            b"UnityWebData1.0" => Ok(FileType::WebFile),
-            _ => {
-                let magic: [u8; 2] = r.read_u8_array()?;
-                r.set_offset(0)?;
-                if magic == gzip_magic {
-                    return Ok(FileType::GZipFile);
-                }
-                r.set_offset(0x20)?;
-                let magic: [u8; 6] = r.read_u8_array()?;
-                r.set_offset(0)?;
-                if magic == brotli_magic {
-                    return Ok(FileType::BrotliFile);
-                }
-                if is_serialized_file(&mut r)? {
-                    return Ok(FileType::AssetsFile);
-                }
-                let magic: [u8; 4] = r.read_u8_array()?;
-                r.set_offset(0)?;
-                if magic == zip_magic || magic == zip_spanned_magic {
-                    return Ok(FileType::ZipFile);
-                }
-                Ok(FileType::ResourceFile)
-            }
-        }
+        let enc_count = (buf[*idx] >> 4) & 0xf;
+        let lit_count = buf[*idx] & 0xf;
+        buf[*idx] = enc_count + (lit_count << 4);
+        *idx += 1;
+        Ok((enc_count as usize, lit_count as usize))
     }
 
-    pub fn load_assets(&self) -> UnityResult<Vec<Asset>> {
-        let mut ret = Vec::new();
-        for (file, node) in self.files.iter().zip(self.nodes.iter()) {
-            if FileType::AssetsFile != AssetBundle::check_file_type(file).unwrap() {
-                continue;
-            }
-            ret.push(Asset::new(file.clone(), &node.path)?)
+    fn swap_chunk_end(buf: &mut [u8], idx: &mut usize) -> UnityResult<usize> {
+        if *idx + 1 >= buf.len() {
+            return Err(UnityError::Eof);
         }
-        Ok(ret)
+        let high = (buf[*idx] as u16) << 8;
+        *idx += 1;
+        let low = buf[*idx] as u16;
+        buf.swap(*idx - 1, *idx);
+        *idx += 1;
+        Ok((high | low) as usize)
+    }
+
+    fn get_length(mut length: usize, buf: &[u8], idx: &mut usize) -> UnityResult<usize> {
+        if length != 0xf {
+            return Ok(length);
+        }
+
+        let mut sum;
+        loop {
+            if *idx >= buf.len() {
+                return Err(UnityError::Eof);
+            }
+            sum = buf[*idx];
+            *idx += 1;
+            length += sum as usize;
+            if sum != 0xff {
+                break;
+            }
+        }
+        Ok(length)
     }
 }
