@@ -128,8 +128,8 @@ impl AssetBundle {
         let signature = r.read_string_util_null()?;
         let version = r.read_u32()?;
         let unity_version = r.read_string_util_null()?;
-        let _unity_revision = r.read_string_util_null()?;
-        let unity_revision = "2022.3.21f1".to_string();
+        let unity_revision = r.read_string_util_null()?;
+        //let unity_revision = "2022.3.21f1".to_string();
         let mut ret = Self {
             header: BundleHead {
                 signature,
